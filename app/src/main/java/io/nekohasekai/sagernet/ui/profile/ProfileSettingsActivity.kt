@@ -27,6 +27,8 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.LayoutRes
+import io.nekohasekai.sagernet.database.preference.InMemoryDatabase
+import io.nekohasekai.sagernet.database.preference.KeyValuePair
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -64,6 +66,10 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
 
     override val onBackPressedCallback = object : OnBackPressedCallback(enabled = false) {
         override fun handleOnBackPressed() {
+            if (!hasUnsavedChanges()) {
+                finish()
+                return
+            }
             MaterialAlertDialogBuilder(this@ProfileSettingsActivity)
                 .setTitle(R.string.unsaved_changes_prompt)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -92,6 +98,8 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
     protected var dirty = false
     protected var bean: T? = null
     protected var isSubscription by Delegates.notNull<Boolean>()
+    private val initialValues = mutableMapOf<String, Any?>()
+    private var cleanEntityBytes: ByteArray? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         savedInstanceState?.getByteArray(KEY_TEMP_BEAN_BYTES)?.let {
@@ -230,7 +238,11 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        if (!super.onSupportNavigateUp()) finish()
+        if (hasUnsavedChanges()) {
+            onBackPressedDispatcher.onBackPressed()
+        } else {
+            finish()
+        }
         return true
     }
 
@@ -239,11 +251,47 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
         super.onDestroy()
     }
 
-    override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
-        if (key != Key.PROFILE_DIRTY) {
-            dirty = true
-            onBackPressedCallback.isEnabled = true
+    protected fun snapshotInitialValues() {
+        initialValues.clear()
+        for (kv in InMemoryDatabase.kvPairDao.all()) {
+            initialValues[kv.key] = kv.snapshotValue()
         }
+    }
+
+    private fun KeyValuePair.snapshotValue(): Any? =
+        boolean ?: long ?: float ?: string ?: stringSet
+
+    protected fun markCleanState() {
+        snapshotInitialValues()
+        cleanEntityBytes = currentEntityBytes()
+        dirty = false
+        onBackPressedCallback.isEnabled = false
+    }
+
+    private fun currentEntityBytes(): ByteArray {
+        val entity = createEntity().apply {
+            serialize()
+            initializeDefaultValues()
+        }
+        val output = ByteArrayOutputStream()
+        val buffer = output.byteBuffer()
+        entity.serializeToBuffer(buffer)
+        buffer.flush()
+        buffer.close()
+        return output.toByteArray()
+    }
+
+    protected fun hasUnsavedChanges(): Boolean {
+        val clean = cleanEntityBytes ?: return dirty
+        return !currentEntityBytes().contentEquals(clean)
+    }
+
+    override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
+        if (key == Key.PROFILE_DIRTY || key == Key.PROFILE_ID) return
+        val current = InMemoryDatabase.kvPairDao[key]?.snapshotValue()
+        if (current == initialValues[key]) return
+        dirty = hasUnsavedChanges()
+        onBackPressedCallback.isEnabled = dirty
     }
 
     abstract fun PreferenceFragmentCompat.createPreferences(
@@ -293,6 +341,7 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
             activity.apply {
                 viewCreated(view, savedInstanceState)
                 view.post {
+                    markCleanState()
                     DataStore.profileCacheStore.registerChangeListener(this)
                 }
             }

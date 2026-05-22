@@ -264,6 +264,7 @@ class BalancerSettingsActivity : ProfileSettingsActivity<BalancerBean>(R.layout.
             }
             onMainDispatcher {
                 notifyDataSetChanged()
+                if (!dirty) markCleanState()
             }
         }
 
@@ -343,8 +344,23 @@ class BalancerSettingsActivity : ProfileSettingsActivity<BalancerBean>(R.layout.
     }*/
 
     var replacing = 0
+    private var savedEditingId: Long = 0L
+    private var savedDirtyBeforeMemberEdit = false
+    private var balancerStateBeforeMemberEdit: BalancerBean? = null
 
     val editMemberLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { (resultCode, _) ->
+        DataStore.profileCacheStore.unregisterChangeListener(this)
+        DataStore.editingId = savedEditingId
+        balancerStateBeforeMemberEdit?.init()
+        balancerStateBeforeMemberEdit = null
+        if (savedDirtyBeforeMemberEdit) {
+            snapshotInitialValues()
+            dirty = true
+            onBackPressedCallback.isEnabled = true
+        } else {
+            markCleanState()
+        }
+        DataStore.profileCacheStore.registerChangeListener(this)
         if (resultCode == Activity.RESULT_OK) runOnDefaultDispatcher {
             val refreshed = proxyList.mapIndexed { idx, p -> idx to (ProfileManager.getProfile(p.id) ?: p) }
             onMainDispatcher {
@@ -436,6 +452,10 @@ class BalancerSettingsActivity : ProfileSettingsActivity<BalancerBean>(R.layout.
 
             editButton.setOnClickListener {
                 proxyEntity.settingIntent(it.context, isSubscription = false)?.let { intent ->
+                    savedEditingId = DataStore.editingId
+                    savedDirtyBeforeMemberEdit = dirty
+                    balancerStateBeforeMemberEdit = createEntity().apply { serialize() }
+                    DataStore.profileCacheStore.unregisterChangeListener(this@BalancerSettingsActivity)
                     editMemberLauncher.launch(intent)
                 }
             }

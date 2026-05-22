@@ -59,14 +59,24 @@ object RawUpdater : GroupUpdater() {
     )
 
     private val pendingBalancers = ThreadLocal.withInitial { mutableListOf<BalancerSpec>() }
+    private val pendingBalancerMembers = ThreadLocal.withInitial { mutableSetOf<String>() }
 
-    private fun resetBalancerSpecs() = pendingBalancers.get().clear()
-    private fun addBalancerSpec(spec: BalancerSpec) = pendingBalancers.get().add(spec)
+    private fun pendingBalancerSpecs() = pendingBalancers.get()!!
+    private fun pendingBalancerMemberNames() = pendingBalancerMembers.get()!!
+    private fun resetBalancerSpecs() {
+        pendingBalancerSpecs().clear()
+        pendingBalancerMemberNames().clear()
+    }
+    private fun addBalancerSpec(spec: BalancerSpec) {
+        pendingBalancerSpecs().add(spec)
+        pendingBalancerMemberNames().addAll(spec.allEntryProxyNames)
+    }
     private fun consumeBalancerSpecs(): List<BalancerSpec> {
-        val r = pendingBalancers.get().toList()
-        pendingBalancers.get().clear()
+        val r = pendingBalancerSpecs().toList()
+        pendingBalancerSpecs().clear()
         return r
     }
+    private fun balancerMemberNames(): Set<String> = pendingBalancerMemberNames().toSet()
 
     override suspend fun doUpdate(
         proxyGroup: ProxyGroup,
@@ -210,9 +220,15 @@ object RawUpdater : GroupUpdater() {
             .filter { it.type != ProxyEntity.TYPE_BALANCER }
         val duplicate = ArrayList<String>()
         if (subscription.deduplication) {
+            val balancerProtected = balancerMemberNames()
             val uniqueProxies = LinkedHashSet<Protocols.Deduplication>()
             val uniqueNames = HashMap<Protocols.Deduplication, String>()
+            val keptBalancerMembers = ArrayList<AbstractBean>()
             for (p in proxies) {
+                if (p.name in balancerProtected) {
+                    keptBalancerMembers.add(p)
+                    continue
+                }
                 val proxy = Protocols.Deduplication(p, p.javaClass.toString())
                 if (!uniqueProxies.add(proxy)) {
                     val index = uniqueProxies.indexOf(proxy)
@@ -229,7 +245,7 @@ object RawUpdater : GroupUpdater() {
                 }
             }
             uniqueProxies.retainAll(uniqueNames.keys)
-            proxies = uniqueProxies.toList().map { it.bean }
+            proxies = uniqueProxies.toList().map { it.bean } + keptBalancerMembers
         }
 
         val nameMap = proxies.associateBy { bean ->
@@ -286,61 +302,69 @@ object RawUpdater : GroupUpdater() {
         SagerDatabase.proxyDao.deleteProxy(toDelete)
 
         val balancerSpecs = consumeBalancerSpecs()
-        if (balancerSpecs.isNotEmpty()) {
-            val currentProxies = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
-            val proxyIdByName = currentProxies.associateBy({ it.displayName() }, { it.id })
-            val proxyByName = currentProxies.associateBy { it.displayName() }
-            val balancerEntitiesByName = currentProxies
-                .filter { it.type == ProxyEntity.TYPE_BALANCER }
-                .associateBy { it.displayName() }
-            val toHide = mutableListOf<ProxyEntity>()
-            for (spec in balancerSpecs) {
-                val memberEntities = spec.memberProxyNames.mapNotNull { proxyByName[it] }
-                val memberIds = memberEntities.map { it.id }
-                if (memberIds.size < 2) continue
-                val strategy = when (spec.strategy.lowercase()) {
-                    "leastload", "leastping" -> spec.strategy
-                    "random" -> "random"
-                    "roundrobin", "round-robin" -> "roundRobin"
-                    else -> "random"
-                }
-                val targetOrder = memberEntities.minOf { it.userOrder }
-                val existing = balancerEntitiesByName[spec.name]
-                if (existing != null) {
-                    val bb = existing.balancerBean ?: BalancerBean().apply {
-                        this.type = BalancerBean.TYPE_LIST
-                        this.name = spec.name
-                        this.strategy = strategy
-                    }
-                    bb.proxies = memberIds
-                    bb.initializeDefaultValues()
-                    existing.putBean(bb)
-                    existing.userOrder = targetOrder
-                    SagerDatabase.proxyDao.updateProxy(existing)
-                } else {
-                    val bb = BalancerBean().apply {
-                        this.type = BalancerBean.TYPE_LIST
-                        this.name = spec.name
-                        this.proxies = memberIds
-                        this.strategy = strategy
-                        initializeDefaultValues()
-                    }
-                    SagerDatabase.proxyDao.addProxy(ProxyEntity(
-                        groupId = proxyGroup.id, userOrder = targetOrder
-                    ).apply { putBean(bb) })
-                    added.add(spec.name)
-                    changed++
-                }
-                spec.allEntryProxyNames.forEach { name ->
-                    proxyByName[name]?.takeIf { !it.hidden }?.also {
-                        it.hidden = true
-                        toHide.add(it)
-                    }
-                }
+        val currentProxies = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
+        val currentProxyByName = currentProxies.associateBy { it.displayName() }
+        val validBalancerSpecs = balancerSpecs.mapNotNull { spec ->
+            val memberEntities = spec.memberProxyNames.mapNotNull { currentProxyByName[it] }
+            val memberIds = memberEntities.map { it.id }
+            if (memberIds.size < 2) null else Triple(spec, memberEntities, memberIds)
+        }
+        val specNames = validBalancerSpecs.map { (spec, _, _) -> spec.name }.toSet()
+        val staleBalancers = currentProxies.filter {
+            it.type == ProxyEntity.TYPE_BALANCER && it.displayName() !in specNames
+        }
+        if (staleBalancers.isNotEmpty()) {
+            SagerDatabase.proxyDao.deleteProxy(staleBalancers)
+            changed += staleBalancers.size
+        }
+        val activeProxies = currentProxies.filter { entity ->
+            staleBalancers.none { it.id == entity.id }
+        }
+        val balancerEntitiesByName = activeProxies
+            .filter { it.type == ProxyEntity.TYPE_BALANCER }
+            .associateBy { it.displayName() }
+        val namesToHide = validBalancerSpecs.flatMap { (spec, _, _) -> spec.allEntryProxyNames }.toSet()
+        for ((spec, memberEntities, memberIds) in validBalancerSpecs) {
+            val strategy = when (spec.strategy.lowercase()) {
+                "leastload", "leastping" -> spec.strategy
+                "random" -> "random"
+                "roundrobin", "round-robin" -> "roundRobin"
+                else -> "random"
             }
-            if (toHide.isNotEmpty()) {
-                SagerDatabase.proxyDao.updateProxy(toHide)
+            val targetOrder = memberEntities.minOf { it.userOrder }
+            val existing = balancerEntitiesByName[spec.name]
+            if (existing != null) {
+                val bb = existing.balancerBean ?: BalancerBean().apply {
+                    this.type = BalancerBean.TYPE_LIST
+                    this.name = spec.name
+                    this.strategy = strategy
+                }
+                bb.proxies = memberIds
+                bb.initializeDefaultValues()
+                existing.putBean(bb)
+                existing.userOrder = targetOrder
+                SagerDatabase.proxyDao.updateProxy(existing)
+            } else {
+                val bb = BalancerBean().apply {
+                    this.type = BalancerBean.TYPE_LIST
+                    this.name = spec.name
+                    this.proxies = memberIds
+                    this.strategy = strategy
+                    initializeDefaultValues()
+                }
+                SagerDatabase.proxyDao.addProxy(ProxyEntity(
+                    groupId = proxyGroup.id, userOrder = targetOrder
+                ).apply { putBean(bb) })
+                added.add(spec.name)
+                changed++
             }
+        }
+        val hiddenUpdates = activeProxies
+            .filter { it.type != ProxyEntity.TYPE_BALANCER }
+            .filter { it.hidden != (it.displayName() in namesToHide) }
+            .onEach { it.hidden = it.displayName() in namesToHide }
+        if (hiddenUpdates.isNotEmpty()) {
+            SagerDatabase.proxyDao.updateProxy(hiddenUpdates)
         }
 
         subscription.lastUpdated = System.currentTimeMillis() / 1000
@@ -418,7 +442,7 @@ object RawUpdater : GroupUpdater() {
                     proto != null && proto !in setOf("freedom", "blackhole", "dns", "loopback")
                 }
 
-                val entryBeans = mutableListOf<Pair<String, AbstractBean>>() // tag -> bean
+                val entryBeans = mutableListOf<Pair<String, AbstractBean>>()
                 proxyOutbounds.forEach { outbound ->
                     val ob = outbound.asJsonObject ?: return@forEach
                     val tag = ob.getString("tag")?.trim().orEmpty()
@@ -437,6 +461,7 @@ object RawUpdater : GroupUpdater() {
                 }
 
                 val balancers = obj.getObject("routing")?.getArray("balancers") ?: return@forEach
+                val multipleBalancers = balancers.size >= 2
                 balancers.forEach { b ->
                     val selector = b.getStringArray("selector") ?: return@forEach
                     if (selector.isEmpty()) return@forEach
@@ -444,9 +469,20 @@ object RawUpdater : GroupUpdater() {
                     val memberNames = entryBeans
                         .filter { (tag, _) -> selector.any { p -> tag.startsWith(p) } }
                         .map { (_, bean) -> bean.name }
+                        .distinct()
                     if (memberNames.size >= 2) {
+                        val tagName = b.getString("tag")?.trim().orEmpty()
+                        val shortTag = tagName
+                            .removeSuffix("_Balancer")
+                            .removeSuffix("Balancer")
+                            .takeIf { it.isNotEmpty() } ?: tagName.ifEmpty { "Balancer" }
+                        val balancerName = when {
+                            prefix.isNotEmpty() && multipleBalancers -> "$prefix ($shortTag)"
+                            prefix.isNotEmpty() -> prefix
+                            else -> tagName.ifEmpty { "Balancer" }
+                        }
                         addBalancerSpec(BalancerSpec(
-                            name = if (prefix.isNotEmpty()) prefix else (b.getString("tag") ?: "Balancer"),
+                            name = balancerName,
                             memberProxyNames = memberNames,
                             allEntryProxyNames = entryBeans.map { (_, bean) -> bean.name },
                             strategy = strategy,
