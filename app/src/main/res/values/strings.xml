@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Exclave</string>
+    <string name="app_name" translatable="false">BetterExclave</string>
     <string name="project">Project</string>
     <string name="github">Source code</string>
     <string name="app_version">Version</string>
@@ -298,6 +298,21 @@
     <string name="group_basic">Basic</string>
     <string name="group_settings">Group settings</string>
     <string name="subscription">Subscription</string>
+    <string name="happ_spoof">Happ Spoof</string>
+    <string name="happ_spoof_sum">Pretends to be Happ when fetching the subscription. Required for subscriptions with device (HWID) limit.</string>
+    <string name="happ_options">Happ Options</string>
+    <string name="happ_options_sum">Configure the Happ User-Agent and device headers</string>
+    <string name="happ_app_version">Happ app version</string>
+    <string name="happ_os">OS</string>
+    <string name="happ_os_version">OS version</string>
+    <string name="happ_device_model">Device model</string>
+    <string name="happ_locale">Locale</string>
+    <string name="happ_user_id">User ID</string>
+    <string name="happ_user_id_sum">Trailing number in the Happ User-Agent. Stays the same across updates.</string>
+    <string name="happ_hwid">Hardware ID</string>
+    <string name="happ_hwid_sum">Value of the x-hwid header. Stays the same across updates.</string>
+    <string name="happ_randomize">Randomize User ID and Hardware ID</string>
+    <string name="happ_randomize_sum">Replace both IDs with fresh random values</string>
     <string name="subscription_settings">Subscription settings</string>
     <string name="group_type">Group type</string>
     <string name="subscription_type">Subscription type</string>
@@ -580,6 +595,17 @@
     <string name="mtls_certificate_private_key">mTLS certificate private key</string>
     <string name="delete_multi_confirm_prompt">Are you sure you want to remove these profiles?</string>
     <string name="interrupt_reused_connections">Interrupt reused connections when network changes</string>
+    <string name="reconnect_on_network_change">Reconnect after network change</string>
+    <string name="reconnect_on_network_change_sum">Restart the proxy connection whenever the underlying network switches (Wi-Fi ↔ cellular, etc.)</string>
+    <string name="show_server_info">Show server info</string>
+    <string name="show_server_info_sum">Show country flag and ASN under each proxy. Downloads ~10 MB DB-IP databases on first use.</string>
+    <string name="update_geoip_db">Update GeoIP databases</string>
+    <string name="update_geoip_db_sum">Download fresh DB-IP country/ASN databases</string>
+    <string name="downloading_geoip_db">Downloading GeoIP databases…</string>
+    <string name="geoip_db_download_failed">Failed to download GeoIP databases</string>
+    <string name="geoip_db_download_ok">GeoIP databases ready</string>
+    <string name="hysteria2_auto_restart">Auto-restart Hysteria 2 (minutes)</string>
+    <string name="hysteria2_auto_restart_sum">Reconnect the proxy every N minutes when the active profile is Hysteria 2. 0 = off. Recommended ≥10. Workaround for stalled Hysteria connections under DPI throttling.</string>
     <string name="create_shortcut">Create shortcut</string>
     <string name="mieru_port_range">Server port range</string>
     <string name="cag_grpc">gRPC settings</string>

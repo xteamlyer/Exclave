@@ -344,6 +344,18 @@ class BalancerSettingsActivity : ProfileSettingsActivity<BalancerBean>(R.layout.
 
     var replacing = 0
 
+    val editMemberLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { (resultCode, _) ->
+        if (resultCode == Activity.RESULT_OK) runOnDefaultDispatcher {
+            val refreshed = proxyList.mapIndexed { idx, p -> idx to (ProfileManager.getProfile(p.id) ?: p) }
+            onMainDispatcher {
+                refreshed.forEach { (idx, updated) ->
+                    proxyList[idx] = updated
+                    configurationAdapter.notifyItemChanged(idx + 1)
+                }
+            }
+        }
+    }
+
     val selectProfileForAdd = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { (resultCode, data) ->
         if (resultCode == Activity.RESULT_OK) runOnDefaultDispatcher {
             dirty = true
@@ -423,12 +435,9 @@ class BalancerSettingsActivity : ProfileSettingsActivity<BalancerBean>(R.layout.
             }
 
             editButton.setOnClickListener {
-                replacing = adapterPosition
-                selectProfileForAdd.launch(Intent(
-                    this@BalancerSettingsActivity, ProfileSelectActivity::class.java
-                ).apply {
-                    putExtra(ProfileSelectActivity.EXTRA_SELECTED, proxyEntity)
-                })
+                proxyEntity.settingIntent(it.context, isSubscription = false)?.let { intent ->
+                    editMemberLauncher.launch(intent)
+                }
             }
 
             deleteButton.setOnClickListener {

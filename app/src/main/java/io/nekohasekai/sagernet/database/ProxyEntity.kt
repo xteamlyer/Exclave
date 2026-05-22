@@ -107,7 +107,8 @@ data class ProxyEntity(
     var trustTunnelBean: TrustTunnelBean? = null,
     var configBean: ConfigBean? = null,
     var chainBean: ChainBean? = null,
-    var balancerBean: BalancerBean? = null
+    var balancerBean: BalancerBean? = null,
+    @ColumnInfo(defaultValue = "0") var hidden: Boolean = false
 ) : Serializable() {
 
     companion object {
@@ -230,31 +231,61 @@ data class ProxyEntity(
         }
     }
 
-    fun displayType() = when (type) {
-        TYPE_SOCKS -> socksBean!!.protocolName()
-        TYPE_HTTP -> httpBean!!.protocolName()
-        TYPE_SS -> ssBean!!.protocolName()
-        TYPE_SSR -> "ShadowsocksR"
-        TYPE_VMESS -> "VMess"
-        TYPE_VLESS -> "VLESS"
-        TYPE_TROJAN -> "Trojan"
-        TYPE_NAIVE -> "NaïveProxy"
-        TYPE_HYSTERIA2 -> "Hysteria 2"
-        TYPE_SSH -> "SSH"
-        TYPE_WG -> "WireGuard"
-        TYPE_MIERU -> "mieru"
-        TYPE_TUIC5 -> "TUIC"
-        TYPE_SHADOWTLS -> "ShadowTLS"
-        TYPE_JUICITY -> "Juicity"
-        TYPE_HTTP3 -> "HTTP/3"
-        TYPE_ANYTLS -> "AnyTLS"
-        TYPE_SHADOWQUIC -> "ShadowQUIC"
-        TYPE_TRUSTTUNNEL -> "TrustTunnel"
+    fun displayType(): String {
+        val base = when (type) {
+            TYPE_SOCKS -> socksBean!!.protocolName()
+            TYPE_HTTP -> httpBean!!.protocolName()
+            TYPE_SS -> ssBean!!.protocolName()
+            TYPE_SSR -> "ShadowsocksR"
+            TYPE_VMESS -> "VMess"
+            TYPE_VLESS -> "VLESS"
+            TYPE_TROJAN -> "Trojan"
+            TYPE_NAIVE -> "NaïveProxy"
+            TYPE_HYSTERIA2 -> "Hysteria 2"
+            TYPE_SSH -> "SSH"
+            TYPE_WG -> "WireGuard"
+            TYPE_MIERU -> "mieru"
+            TYPE_TUIC5 -> "TUIC"
+            TYPE_SHADOWTLS -> "ShadowTLS"
+            TYPE_JUICITY -> "Juicity"
+            TYPE_HTTP3 -> "HTTP/3"
+            TYPE_ANYTLS -> "AnyTLS"
+            TYPE_SHADOWQUIC -> "ShadowQUIC"
+            TYPE_TRUSTTUNNEL -> "TrustTunnel"
 
-        TYPE_CHAIN -> chainName
-        TYPE_CONFIG -> configName
-        TYPE_BALANCER -> balancerName
-        else -> "Invalid"
+            TYPE_CHAIN -> chainName
+            TYPE_CONFIG -> configName
+            TYPE_BALANCER -> balancerName
+            else -> "Invalid"
+        }
+        val bean = requireBean()
+        if (bean is io.nekohasekai.sagernet.fmt.v2ray.StandardV2RayBean) {
+            val transport = when (bean.type?.lowercase()) {
+                null, "", "tcp" -> "TCP"
+                "ws" -> "WS"
+                "grpc" -> "gRPC"
+                "h2" -> "H2"
+                "quic" -> "QUIC"
+                "kcp", "mkcp" -> "mKCP"
+                "splithttp", "xhttp" -> "XHTTP"
+                "httpupgrade" -> "HTTPUpgrade"
+                "meek" -> "Meek"
+                "mekya" -> "Mekya"
+                else -> bean.type.uppercase()
+            }
+            val security = when (bean.security?.lowercase()) {
+                "tls" -> "TLS"
+                "reality" -> "REALITY"
+                "xtls" -> "XTLS"
+                else -> null
+            }
+            return buildString {
+                append(base)
+                append(" ⫽ ").append(transport)
+                if (security != null) append(" ⫽ ").append(security)
+            }
+        }
+        return base
     }
 
     fun displayName() = requireBean().displayName()

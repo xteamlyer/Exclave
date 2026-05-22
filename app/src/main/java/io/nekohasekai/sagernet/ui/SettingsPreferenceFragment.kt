@@ -566,6 +566,34 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
             true
         }
+
+        findPreference<SwitchPreference>(Key.SHOW_SERVER_INFO)!!.setOnPreferenceChangeListener { _, newValue ->
+            if (newValue == true && !io.nekohasekai.sagernet.utils.GeoIPManager.isReady()) {
+                triggerGeoIpDownload()
+            }
+            true
+        }
+        findPreference<Preference>(Key.UPDATE_GEOIP_DB)!!.setOnPreferenceClickListener {
+            triggerGeoIpDownload()
+            true
+        }
+    }
+
+    private fun triggerGeoIpDownload() {
+        val ctx = requireContext()
+        io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher {
+            io.nekohasekai.sagernet.ktx.onMainDispatcher {
+                android.widget.Toast.makeText(ctx, R.string.downloading_geoip_db, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            val ok = io.nekohasekai.sagernet.utils.GeoIPManager.downloadDatabases()
+            io.nekohasekai.sagernet.ktx.onMainDispatcher {
+                android.widget.Toast.makeText(
+                    ctx,
+                    if (ok) R.string.geoip_db_download_ok else R.string.geoip_db_download_failed,
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
 

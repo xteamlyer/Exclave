@@ -35,6 +35,7 @@ import io.nekohasekai.sagernet.aidl.ISagerNetServiceCallback
 import io.nekohasekai.sagernet.aidl.TrafficStats
 import io.nekohasekai.sagernet.bg.proto.ProxyInstance
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.Alerts
 import io.nekohasekai.sagernet.fmt.TAG_SOCKS
@@ -84,6 +85,7 @@ class BaseService {
 
         val binder = Binder(this)
         var connectingJob: Job? = null
+        var autoRestartJob: Job? = null
 
         fun changeState(s: State, msg: String? = null) {
             if (state == s && msg == null) return
@@ -395,6 +397,18 @@ class BaseService {
             }
         }
 
+        fun scheduleHysteria2AutoRestart(profile: ProxyEntity) {
+            data.autoRestartJob?.cancel()
+            val minutes = DataStore.hysteria2AutoRestart
+            if (minutes <= 0 || profile.type != ProxyEntity.TYPE_HYSTERIA2) return
+            data.autoRestartJob = GlobalScope.launch(Dispatchers.Main) {
+                delay(minutes.toLong() * 60_000L)
+                if (data.state == State.Connected && DataStore.startedProfile == profile.id) {
+                    stopRunner(restart = true)
+                }
+            }
+        }
+
         fun stopRunner(restart: Boolean = false, msg: String? = null, keepState: Boolean = true) {
             data.notification?.destroy()
             data.notification = null
@@ -404,6 +418,8 @@ class BaseService {
             data.changeState(State.Stopping)
 
             runOnMainDispatcher {
+                data.autoRestartJob?.cancel()
+                data.autoRestartJob = null
                 data.connectingJob?.cancelAndJoin() // ensure stop connecting first
                 killProcesses()
                 // we use a coroutineScope here to allow clean-up in parallel
@@ -501,6 +517,7 @@ class BaseService {
                     DataStore.startedProfile = profile.id
                     startProcesses()
                     data.changeState(State.Connected)
+                    scheduleHysteria2AutoRestart(profile)
                     data.binder.checkLoop()
 
                     for ((type, routeName) in proxy.config.alerts) {

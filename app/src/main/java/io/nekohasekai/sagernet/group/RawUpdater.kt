@@ -30,6 +30,7 @@ import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.SubscriptionBean
 import io.nekohasekai.sagernet.fmt.AbstractBean
+import io.nekohasekai.sagernet.fmt.internal.BalancerBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.parseShadowsocksConfig
 import io.nekohasekai.sagernet.fmt.wireguard.parseWireGuardConfig
 import io.nekohasekai.sagernet.ktx.*
@@ -50,6 +51,23 @@ import java.util.regex.Pattern
 @Suppress("EXPERIMENTAL_API_USAGE")
 object RawUpdater : GroupUpdater() {
 
+    data class BalancerSpec(
+        val name: String,
+        val memberProxyNames: List<String>,
+        val allEntryProxyNames: List<String>,
+        val strategy: String,
+    )
+
+    private val pendingBalancers = ThreadLocal.withInitial { mutableListOf<BalancerSpec>() }
+
+    private fun resetBalancerSpecs() = pendingBalancers.get().clear()
+    private fun addBalancerSpec(spec: BalancerSpec) = pendingBalancers.get().add(spec)
+    private fun consumeBalancerSpecs(): List<BalancerSpec> {
+        val r = pendingBalancers.get().toList()
+        pendingBalancers.get().clear()
+        return r
+    }
+
     override suspend fun doUpdate(
         proxyGroup: ProxyGroup,
         subscription: SubscriptionBean,
@@ -57,6 +75,7 @@ object RawUpdater : GroupUpdater() {
         byUser: Boolean
     ) {
 
+        resetBalancerSpecs()
         val link = subscription.link
         var proxies: List<AbstractBean>
         if (link.startsWith("content://", ignoreCase = true)) {
@@ -73,15 +92,54 @@ object RawUpdater : GroupUpdater() {
                 }
             }.newRequest().apply {
                 setURL(subscription.link)
-                if (subscription.customUserAgent.isNotEmpty()) {
+                if (subscription.happSpoof) {
+                    HappSpoof.apply(this, subscription)
+                } else if (subscription.customUserAgent.isNotEmpty()) {
                     setUserAgent(subscription.customUserAgent)
                 } else {
                     setUserAgent(USER_AGENT)
                 }
             }.execute()
 
-            proxies = parseRaw(response.contentString)
+            val body = if (response.getHeader("Content-Encoding").equals("gzip", ignoreCase = true)) {
+                try {
+                    java.util.zip.GZIPInputStream(response.content.inputStream())
+                        .bufferedReader(Charsets.UTF_8).use { it.readText() }
+                } catch (_: Exception) {
+                    response.contentString
+                }
+            } else {
+                response.contentString
+            }
+
+            proxies = parseRaw(body)
                 ?: error(app.getString(R.string.no_proxies_found))
+
+            val profileTitle = response.getHeader("profile-title").ifEmpty {
+                response.getHeader("Content-Disposition")
+                    .substringAfter("filename=", "")
+                    .substringBefore(';')
+                    .trim()
+                    .trim('"')
+            }
+            if (profileTitle.isNotEmpty()) {
+                val decoded = if (profileTitle.startsWith("base64:")) {
+                    try {
+                        profileTitle.removePrefix("base64:").decodeBase64()
+                    } catch (_: Exception) {
+                        ""
+                    }
+                } else {
+                    profileTitle
+                }
+                if (decoded.isNotEmpty()) {
+                    val current = proxyGroup.name
+                    val placeholder = app.getString(R.string.subscription)
+                    if (current.isNullOrBlank() || current == placeholder) {
+                        proxyGroup.name = decoded
+                    }
+                }
+            }
 
             val subscriptionUserinfo = response.getHeader("Subscription-Userinfo")
             if (subscriptionUserinfo.isNotEmpty()) {
@@ -149,6 +207,7 @@ object RawUpdater : GroupUpdater() {
         proxies = proxiesMap.values.toList()
 
         val exists = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
+            .filter { it.type != ProxyEntity.TYPE_BALANCER }
         val duplicate = ArrayList<String>()
         if (subscription.deduplication) {
             val uniqueProxies = LinkedHashSet<Protocols.Deduplication>()
@@ -226,6 +285,64 @@ object RawUpdater : GroupUpdater() {
         SagerDatabase.proxyDao.updateProxy(toUpdate)
         SagerDatabase.proxyDao.deleteProxy(toDelete)
 
+        val balancerSpecs = consumeBalancerSpecs()
+        if (balancerSpecs.isNotEmpty()) {
+            val currentProxies = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
+            val proxyIdByName = currentProxies.associateBy({ it.displayName() }, { it.id })
+            val proxyByName = currentProxies.associateBy { it.displayName() }
+            val balancerEntitiesByName = currentProxies
+                .filter { it.type == ProxyEntity.TYPE_BALANCER }
+                .associateBy { it.displayName() }
+            val toHide = mutableListOf<ProxyEntity>()
+            for (spec in balancerSpecs) {
+                val memberEntities = spec.memberProxyNames.mapNotNull { proxyByName[it] }
+                val memberIds = memberEntities.map { it.id }
+                if (memberIds.size < 2) continue
+                val strategy = when (spec.strategy.lowercase()) {
+                    "leastload", "leastping" -> spec.strategy
+                    "random" -> "random"
+                    "roundrobin", "round-robin" -> "roundRobin"
+                    else -> "random"
+                }
+                val targetOrder = memberEntities.minOf { it.userOrder }
+                val existing = balancerEntitiesByName[spec.name]
+                if (existing != null) {
+                    val bb = existing.balancerBean ?: BalancerBean().apply {
+                        this.type = BalancerBean.TYPE_LIST
+                        this.name = spec.name
+                        this.strategy = strategy
+                    }
+                    bb.proxies = memberIds
+                    bb.initializeDefaultValues()
+                    existing.putBean(bb)
+                    existing.userOrder = targetOrder
+                    SagerDatabase.proxyDao.updateProxy(existing)
+                } else {
+                    val bb = BalancerBean().apply {
+                        this.type = BalancerBean.TYPE_LIST
+                        this.name = spec.name
+                        this.proxies = memberIds
+                        this.strategy = strategy
+                        initializeDefaultValues()
+                    }
+                    SagerDatabase.proxyDao.addProxy(ProxyEntity(
+                        groupId = proxyGroup.id, userOrder = targetOrder
+                    ).apply { putBean(bb) })
+                    added.add(spec.name)
+                    changed++
+                }
+                spec.allEntryProxyNames.forEach { name ->
+                    proxyByName[name]?.takeIf { !it.hidden }?.also {
+                        it.hidden = true
+                        toHide.add(it)
+                    }
+                }
+            }
+            if (toHide.isNotEmpty()) {
+                SagerDatabase.proxyDao.updateProxy(toHide)
+            }
+        }
+
         subscription.lastUpdated = System.currentTimeMillis() / 1000
         SagerDatabase.groupDao.updateGroup(proxyGroup)
         finishUpdate(proxyGroup)
@@ -288,21 +405,53 @@ object RawUpdater : GroupUpdater() {
         if (jsonElement.isJsonArray) {
             // https://github.com/XTLS/Xray-core/discussions/3765 WTF
             val beans = ArrayList<AbstractBean>()
-            jsonElement.asJsonArray.forEach {
-                if (!it.isJsonObject) {
+            jsonElement.asJsonArray.forEach { entry ->
+                if (!entry.isJsonObject) {
                     return listOf()
                 }
-                val prefix = it.asJsonObject.getString("remarks", ignoreCase = true)
-                val outbounds = it.asJsonObject.getArray("outbounds", ignoreCase = true)
-                outbounds?.forEach { outbound ->
-                    val parsed = parseV2RayOutbound(outbound)
-                    if (!prefix.isNullOrEmpty()) {
-                        parsed.forEach { bean ->
-                            bean.initializeDefaultValues()
-                            bean.name = "$prefix ${bean.displayName()}"
+                val obj = entry.asJsonObject
+                val prefix = (obj.getString("remarks", ignoreCase = true) ?: "").trim()
+
+                val outboundsArr = obj.getArray("outbounds", ignoreCase = true) ?: return@forEach
+                val proxyOutbounds = outboundsArr.filter { ob ->
+                    val proto = ob.asJsonObject?.getString("protocol")?.lowercase()
+                    proto != null && proto !in setOf("freedom", "blackhole", "dns", "loopback")
+                }
+
+                val entryBeans = mutableListOf<Pair<String, AbstractBean>>() // tag -> bean
+                proxyOutbounds.forEach { outbound ->
+                    val ob = outbound.asJsonObject ?: return@forEach
+                    val tag = ob.getString("tag")?.trim().orEmpty()
+                    val parsed = parseV2RayOutbound(ob)
+                    parsed.forEach { bean ->
+                        bean.initializeDefaultValues()
+                        bean.name = when {
+                            prefix.isEmpty() && tag.isNotEmpty() -> tag
+                            prefix.isNotEmpty() && proxyOutbounds.size == 1 -> prefix
+                            prefix.isNotEmpty() && tag.isNotEmpty() -> "$prefix $tag"
+                            else -> bean.displayName()
                         }
+                        entryBeans.add(tag to bean)
+                        beans.add(bean)
                     }
-                    beans.addAll(parsed)
+                }
+
+                val balancers = obj.getObject("routing")?.getArray("balancers") ?: return@forEach
+                balancers.forEach { b ->
+                    val selector = b.getStringArray("selector") ?: return@forEach
+                    if (selector.isEmpty()) return@forEach
+                    val strategy = b.getObject("strategy")?.getString("type") ?: "random"
+                    val memberNames = entryBeans
+                        .filter { (tag, _) -> selector.any { p -> tag.startsWith(p) } }
+                        .map { (_, bean) -> bean.name }
+                    if (memberNames.size >= 2) {
+                        addBalancerSpec(BalancerSpec(
+                            name = if (prefix.isNotEmpty()) prefix else (b.getString("tag") ?: "Balancer"),
+                            memberProxyNames = memberNames,
+                            allEntryProxyNames = entryBeans.map { (_, bean) -> bean.name },
+                            strategy = strategy,
+                        ))
+                    }
                 }
             }
             return beans

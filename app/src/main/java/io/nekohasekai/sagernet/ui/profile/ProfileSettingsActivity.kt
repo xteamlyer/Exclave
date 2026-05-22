@@ -292,7 +292,9 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
 
             activity.apply {
                 viewCreated(view, savedInstanceState)
-                DataStore.profileCacheStore.registerChangeListener(this)
+                view.post {
+                    DataStore.profileCacheStore.registerChangeListener(this)
+                }
             }
         }
 

@@ -94,6 +94,16 @@
             app:key="subscriptionAutoUpdateDelay"
             app:title="@string/auto_update_delay"
             app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_fingerprint_24"
+            app:key="subscriptionHappSpoof"
+            app:summary="@string/happ_spoof_sum"
+            app:title="@string/happ_spoof" />
+        <Preference
+            app:icon="@drawable/ic_action_settings"
+            app:key="subscriptionHappOptions"
+            app:summary="@string/happ_options_sum"
+            app:title="@string/happ_options" />
     </PreferenceCategory>
 
 </PreferenceScreen>

@@ -57,14 +57,52 @@ object SIP008Updater : GroupUpdater() {
                     }
                 }.newRequest().apply {
                     setURL(subscription.link)
-                    if (subscription.customUserAgent.isNotEmpty()) {
+                    if (subscription.happSpoof) {
+                        HappSpoof.apply(this, subscription)
+                    } else if (subscription.customUserAgent.isNotEmpty()) {
                         setUserAgent(subscription.customUserAgent)
                     } else {
                         setUserAgent(USER_AGENT)
                     }
                 }.execute()
 
-                sip008Response = parseJson(response.contentString).asJsonObject
+                val profileTitle = response.getHeader("profile-title").ifEmpty {
+                    response.getHeader("Content-Disposition")
+                        .substringAfter("filename=", "")
+                        .substringBefore(';')
+                        .trim()
+                        .trim('"')
+                }
+                if (profileTitle.isNotEmpty()) {
+                    val decoded = if (profileTitle.startsWith("base64:")) {
+                        try {
+                            profileTitle.removePrefix("base64:").decodeBase64()
+                        } catch (_: Exception) {
+                            ""
+                        }
+                    } else {
+                        profileTitle
+                    }
+                    if (decoded.isNotEmpty()) {
+                        val current = proxyGroup.name
+                        val placeholder = app.getString(R.string.subscription)
+                        if (current.isNullOrBlank() || current == placeholder) {
+                            proxyGroup.name = decoded
+                        }
+                    }
+                }
+
+                val body = if (response.getHeader("Content-Encoding").equals("gzip", ignoreCase = true)) {
+                    try {
+                        java.util.zip.GZIPInputStream(response.content.inputStream())
+                            .bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    } catch (_: Exception) {
+                        response.contentString
+                    }
+                } else {
+                    response.contentString
+                }
+                sip008Response = parseJson(body).asJsonObject
             }
         } catch (_: Exception) {
             error("invalid response")

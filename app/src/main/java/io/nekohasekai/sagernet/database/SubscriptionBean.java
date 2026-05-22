@@ -44,13 +44,21 @@ public class SubscriptionBean extends Serializable {
 
     public String nameFilter;
     public String nameFilter1;
+    public Boolean happSpoof;
+    public String happAppVersion;
+    public String happOs;
+    public String happOsVersion;
+    public String happDeviceModel;
+    public String happLocale;
+    public String happUserId;
+    public String happHwid;
 
     public SubscriptionBean() {
     }
 
     @Override
     public void serializeToBuffer(ByteBufferOutput output) {
-        output.writeInt(8);
+        output.writeInt(10);
         output.writeInt(type);
         output.writeString(link);
         output.writeBoolean(deduplication);
@@ -64,6 +72,14 @@ public class SubscriptionBean extends Serializable {
         output.writeLong(expiryDate);
         output.writeString(nameFilter);
         output.writeString(nameFilter1);
+        output.writeBoolean(happSpoof);
+        output.writeString(happAppVersion);
+        output.writeString(happOs);
+        output.writeString(happOsVersion);
+        output.writeString(happDeviceModel);
+        output.writeString(happLocale);
+        output.writeString(happUserId);
+        output.writeString(happHwid);
     }
 
     public void serializeForShare(ByteBufferOutput output) {
@@ -144,6 +160,20 @@ public class SubscriptionBean extends Serializable {
         if (version >= 8) {
             nameFilter1 = input.readString();
         }
+
+        if (version >= 9) {
+            happSpoof = input.readBoolean();
+        }
+
+        if (version >= 10) {
+            happAppVersion = input.readString();
+            happOs = input.readString();
+            happOsVersion = input.readString();
+            happDeviceModel = input.readString();
+            happLocale = input.readString();
+            happUserId = input.readString();
+            happHwid = input.readString();
+        }
     }
 
     public void deserializeFromShare(ByteBufferInput input) {
@@ -210,6 +240,14 @@ public class SubscriptionBean extends Serializable {
         if (bytesRemaining == null) bytesRemaining = 0L;
         if (nameFilter == null) nameFilter = "";
         if (nameFilter1 == null) nameFilter1 = "";
+        if (happSpoof == null) happSpoof = false;
+        if (happAppVersion == null) happAppVersion = "3.21.1";
+        if (happOs == null) happOs = "Android";
+        if (happOsVersion == null) happOsVersion = "16";
+        if (happDeviceModel == null) happDeviceModel = "Pixel 7 Pro";
+        if (happLocale == null) happLocale = "en";
+        if (happUserId == null) happUserId = "";
+        if (happHwid == null) happHwid = "";
 
         if (expiryDate == null) expiryDate = 0L;
     }

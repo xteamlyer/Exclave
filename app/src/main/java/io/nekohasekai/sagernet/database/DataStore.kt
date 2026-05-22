@@ -275,6 +275,9 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var shadowsocks2022Implementation by configurationStore.stringToInt(Key.SHADOWSOCKS_2022_IMPLEMENTATION)
     var providerRootCA by configurationStore.stringToInt(Key.PROVIDER_ROOT_CA) { 1 }
     var interruptReusedConnections by configurationStore.boolean(Key.INTERRUPT_REUSED_CONNECTIONS) { true }
+    var reconnectOnNetworkChange by configurationStore.boolean(Key.RECONNECT_ON_NETWORK_CHANGE)
+    var showServerInfo by configurationStore.boolean(Key.SHOW_SERVER_INFO)
+    var hysteria2AutoRestart by configurationStore.stringToInt(Key.HYSTERIA2_AUTO_RESTART)
 
     // cache
 
@@ -444,6 +447,14 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var subscriptionExpiryDate by profileCacheStore.long(Key.SUBSCRIPTION_EXPIRY_DATE)
     var subscriptionNameFilter by profileCacheStore.string(Key.SUBSCRIPTION_NAME_FILTER)
     var subscriptionNameFilter1 by profileCacheStore.string(Key.SUBSCRIPTION_NAME_FILTER1)
+    var subscriptionHappSpoof by profileCacheStore.boolean(Key.SUBSCRIPTION_HAPP_SPOOF)
+    var subscriptionHappAppVersion by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_APP_VERSION)
+    var subscriptionHappOs by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_OS)
+    var subscriptionHappOsVersion by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_OS_VERSION)
+    var subscriptionHappDeviceModel by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_DEVICE_MODEL)
+    var subscriptionHappLocale by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_LOCALE)
+    var subscriptionHappUserId by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_USER_ID)
+    var subscriptionHappHwid by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_HWID)
 
     var editingAssetName by profileCacheStore.string(Key.EDITING_ASSET_NAME)
     var assetName by profileCacheStore.string(Key.ASSET_NAME)

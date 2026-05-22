@@ -7,6 +7,9 @@
 # SnakeYaml
 -keep class org.yaml.snakeyaml.** { *; }
 
+-keep class com.maxmind.db.** { *; }
+-dontwarn com.maxmind.db.**
+
 -dontobfuscate
 -keepattributes SourceFile
 

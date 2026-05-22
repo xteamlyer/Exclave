@@ -107,6 +107,10 @@ object Key {
     const val PROVIDER_ROOT_CA = "providerRootCA"
 
     const val INTERRUPT_REUSED_CONNECTIONS = "interruptReusedConnections0"
+    const val RECONNECT_ON_NETWORK_CHANGE = "reconnectOnNetworkChange"
+    const val SHOW_SERVER_INFO = "showServerInfo"
+    const val UPDATE_GEOIP_DB = "updateGeoIpDb"
+    const val HYSTERIA2_AUTO_RESTART = "hysteria2AutoRestart"
 
     const val TUN_IMPLEMENTATION = "tunImplementation"
     const val ENABLE_PCAP = "enablePcap"
@@ -312,6 +316,16 @@ object Key {
     const val SUBSCRIPTION_EXPIRY_DATE = "subscriptionExpiryDate"
     const val SUBSCRIPTION_NAME_FILTER = "subscriptionNameFilter"
     const val SUBSCRIPTION_NAME_FILTER1 = "subscriptionNameFilter1"
+    const val SUBSCRIPTION_HAPP_SPOOF = "subscriptionHappSpoof"
+    const val SUBSCRIPTION_HAPP_OPTIONS = "subscriptionHappOptions"
+    const val SUBSCRIPTION_HAPP_APP_VERSION = "subscriptionHappAppVersion"
+    const val SUBSCRIPTION_HAPP_OS = "subscriptionHappOs"
+    const val SUBSCRIPTION_HAPP_OS_VERSION = "subscriptionHappOsVersion"
+    const val SUBSCRIPTION_HAPP_DEVICE_MODEL = "subscriptionHappDeviceModel"
+    const val SUBSCRIPTION_HAPP_LOCALE = "subscriptionHappLocale"
+    const val SUBSCRIPTION_HAPP_USER_ID = "subscriptionHappUserId"
+    const val SUBSCRIPTION_HAPP_HWID = "subscriptionHappHwid"
+    const val SUBSCRIPTION_HAPP_RANDOMIZE_IDS = "subscriptionHappRandomizeIds"
 
     const val EDITING_ASSET_NAME = "editingAssetName"
     const val ASSET_NAME = "assetName"

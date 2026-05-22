@@ -26,6 +26,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.*
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -118,6 +119,26 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
     }
 
+    fun bindTabCustomView(tab: TabLayout.Tab, group: ProxyGroup) {
+        val view = tab.customView ?: layoutInflater.inflate(R.layout.tab_group_item, null).also {
+            tab.customView = it
+        }
+        val text = view.findViewById<TextView>(R.id.tab_text)
+        val update = view.findViewById<ImageButton>(R.id.tab_update)
+        text.text = group.displayName()
+        if (!select && group.type == GroupType.SUBSCRIPTION) {
+            update.visibility = View.VISIBLE
+            update.setOnClickListener {
+                if (group.id !in GroupUpdater.updating) {
+                    GroupUpdater.startUpdate(group, true)
+                }
+            }
+        } else {
+            update.visibility = View.GONE
+            update.setOnClickListener(null)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -202,7 +223,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
         TabLayoutMediator(tabLayout, groupPager) { tab, position ->
             if (adapter.groupList.size > position) {
-                tab.text = adapter.groupList[position].displayName()
+                bindTabCustomView(tab, adapter.groupList[position])
             }
             tab.view.setOnLongClickListener { // clear toast
                 true
@@ -530,6 +551,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             R.id.action_remove_duplicate -> {
                 runOnDefaultDispatcher {
                     val profiles = SagerDatabase.proxyDao.getByGroup(DataStore.currentGroupId())
+                        .filter { !it.hidden }
                     val toClear = mutableListOf<ProxyEntity>()
                     val uniqueProxies = LinkedHashSet<Protocols.Deduplication>()
                     for (p in profiles) {
@@ -795,7 +817,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             val group = DataStore.currentGroup()
             var profilesUnfiltered = SagerDatabase.proxyDao.getByGroup(group.id)
             profilesUnfiltered = profilesUnfiltered.filter {
-                !it.useBrowserForwarder()
+                !it.useBrowserForwarder() && !it.hidden
             }
             val profiles = ConcurrentLinkedQueue(profilesUnfiltered)
 
@@ -806,6 +828,22 @@ class ConfigurationFragment @JvmOverloads constructor(
             val link = DataStore.connectionTestURL
             val timeout = 5000
 
+            suspend fun runTest(target: ProxyEntity): Pair<Int, Int> {
+                return try {
+                    val instance = if (DataStore.tunImplementation == TunImplementation.SYSTEM && DataStore.serviceMode == Key.MODE_VPN && SagerNet.started && DataStore.startedProfile > 0) {
+                        V2RayTestInstance(target, link, timeout, protectPath = SagerNet.deviceStorage.noBackupFilesDir.toString() + "/protect_path")
+                    } else {
+                        V2RayTestInstance(target, link, timeout)
+                    }
+                    val result = instance.use { it.doTest() }
+                    1 to result
+                } catch (e: PluginManager.PluginNotFoundException) {
+                    throw e
+                } catch (e: Exception) {
+                    3 to 0
+                }
+            }
+
             repeat(6) {
                 testJobs.add(launch {
                     while (isActive) {
@@ -814,16 +852,29 @@ class ConfigurationFragment @JvmOverloads constructor(
                         test.insert(profile)
 
                         try {
-                            val instance = if (DataStore.tunImplementation == TunImplementation.SYSTEM && DataStore.serviceMode == Key.MODE_VPN && SagerNet.started && DataStore.startedProfile > 0) {
-                                V2RayTestInstance(profile, link, timeout, protectPath = SagerNet.deviceStorage.noBackupFilesDir.toString() + "/protect_path")
+                            if (profile.type == ProxyEntity.TYPE_BALANCER) {
+                                val members = profile.balancerBean?.proxies
+                                    ?.let { SagerDatabase.proxyDao.getEntities(it) }
+                                    .orEmpty()
+                                var bestPing = Int.MAX_VALUE
+                                for (member in members) {
+                                    val (status, ping) = runTest(member)
+                                    if (status == 1 && ping in 1 until bestPing) {
+                                        bestPing = ping
+                                    }
+                                }
+                                if (bestPing != Int.MAX_VALUE) {
+                                    profile.status = 1
+                                    profile.ping = bestPing
+                                } else {
+                                    profile.status = 3
+                                    profile.error = "all balancer members unreachable"
+                                }
                             } else {
-                                V2RayTestInstance(profile, link, timeout)
+                                val (status, ping) = runTest(profile)
+                                profile.status = status
+                                if (status == 1) profile.ping = ping
                             }
-                            val result = instance.use {
-                                it.doTest()
-                            }
-                            profile.status = 1
-                            profile.ping = result
                         } catch (e: PluginManager.PluginNotFoundException) {
                             profile.status = -1
                             profile.error = e.readableMessage
@@ -975,9 +1026,9 @@ class ConfigurationFragment @JvmOverloads constructor(
         override suspend fun groupUpdated(group: ProxyGroup) {
             val index = groupList.indexOfFirst { it.id == group.id }
             if (index == -1) return
-
+            groupList[index] = group
             tabLayout.post {
-                tabLayout.getTabAt(index)?.text = group.displayName()
+                tabLayout.getTabAt(index)?.let { bindTabCustomView(it, group) }
             }
         }
 
@@ -1415,7 +1466,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
 
                 var newProfiles = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
-                newProfiles = newProfiles.filter { it.id !in pendingDeletedIds }
+                newProfiles = newProfiles.filter { it.id !in pendingDeletedIds && !it.hidden }
                 when (proxyGroup.order) {
                     GroupOrder.BY_NAME -> {
                         newProfiles = newProfiles.sortedBy { it.displayName() }
@@ -1467,6 +1518,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             val profileType: TextView = view.findViewById(R.id.profile_type)
             val profileAddress: TextView = view.findViewById(R.id.profile_address)
             val profileStatus: TextView = view.findViewById(R.id.profile_status)
+            val profileServerInfo: TextView = view.findViewById(R.id.profile_server_info)
 
             val trafficText: TextView = view.findViewById(R.id.traffic_text)
             val selectedView: LinearLayout = view.findViewById(R.id.selected_view)
@@ -1521,6 +1573,28 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 profileName.text = proxyEntity.displayName()
                 profileType.text = proxyEntity.displayType()
+
+                profileServerInfo.isGone = true
+                if (DataStore.showServerInfo && proxyEntity.type != ProxyEntity.TYPE_BALANCER
+                    && proxyEntity.type != ProxyEntity.TYPE_CHAIN && proxyEntity.type != ProxyEntity.TYPE_CONFIG) {
+                    val host = try { proxyEntity.requireBean().serverAddress } catch (_: Throwable) { null }
+                    if (!host.isNullOrBlank()) {
+                        val entityId = proxyEntity.id
+                        runOnDefaultDispatcher {
+                            val info = io.nekohasekai.sagernet.utils.GeoIPManager.lookup(host)
+                            onMainDispatcher {
+                                if (entity.id != entityId) return@onMainDispatcher
+                                if (info != null && (info.countryCode != null || info.asnName != null)) {
+                                    val flag = io.nekohasekai.sagernet.utils.GeoIPManager.countryFlag(info.countryCode)
+                                    val name = info.asnName ?: info.countryName ?: ""
+                                    val asn = info.asn?.let { " (AS$it)" } ?: ""
+                                    profileServerInfo.text = listOf(flag, "$name$asn").filter { it.isNotEmpty() }.joinToString(" ")
+                                    profileServerInfo.isVisible = true
+                                }
+                            }
+                        }
+                    }
+                }
 
                 var rx = proxyEntity.rx
                 var tx = proxyEntity.tx

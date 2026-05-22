@@ -215,6 +215,8 @@
         <activity
             android:name="io.nekohasekai.sagernet.ui.GroupSettingsActivity" />
         <activity
+            android:name="io.nekohasekai.sagernet.ui.HappOptionsActivity" />
+        <activity
             android:name="io.nekohasekai.sagernet.ui.RouteSettingsActivity" />
         <activity
             android:name="io.nekohasekai.sagernet.ui.AssetsActivity" />

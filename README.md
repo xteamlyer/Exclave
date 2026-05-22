@@ -1,4 +1,21 @@
-# Exclave
+# BetterExclave
+
+A fork of Exclave with some QoL features.
+
+## Changes over upstream
+
+- Subscription name pulled from the `profile-title` header.
+- Refresh button next to each subscription tab on the main screen.
+- Gzip-encoded subscription responses are decompressed.
+- Balancer support in subscriptions (V2Ray JSON `routing.balancers`).
+- Single-outbound subscription entries use just `remarks` as the proxy name.
+- Per-subscription **Happ Spoof** with editable User-Agent fields and HWID.
+- **Show server info**: country flag and ASN under each proxy (DB-IP).
+- Transport and security in the type label (`VLESS ⫽ gRPC ⫽ REALITY`,
+  `splithttp` → `XHTTP`).
+- **Reconnect after network change** and **Auto-restart Hysteria 2** options.
+
+## Original README:
 
 Exclave is a proxy client.
 

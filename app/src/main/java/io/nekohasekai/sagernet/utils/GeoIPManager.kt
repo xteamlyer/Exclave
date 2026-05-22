@@ -1,0 +1,177 @@
+package io.nekohasekai.sagernet.utils
+
+import com.maxmind.db.Reader
+import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.ktx.Logs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import libsagernetcore.Libsagernetcore
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.net.InetAddress
+import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.GZIPInputStream
+
+object GeoIPManager {
+
+    private val baseDir by lazy { File(SagerNet.application.filesDir, "geoip").apply { mkdirs() } }
+    private val countryFile get() = File(baseDir, "country.mmdb")
+    private val asnFile get() = File(baseDir, "asn.mmdb")
+
+    private var countryReader: Reader? = null
+    private var asnReader: Reader? = null
+    private val readerLock = Mutex()
+
+    data class Info(val countryCode: String?, val countryName: String?, val asn: Long?, val asnName: String?)
+
+    private val ipCache = ConcurrentHashMap<String, Info>()
+    private val hostCache = ConcurrentHashMap<String, String?>()
+
+    suspend fun ensureLoaded(): Boolean = readerLock.withLock {
+        if (countryReader != null && asnReader != null) return@withLock true
+        if (!countryFile.exists() || !asnFile.exists()) return@withLock false
+        try {
+            countryReader = Reader(countryFile, Reader.FileMode.MEMORY_MAPPED)
+            asnReader = Reader(asnFile, Reader.FileMode.MEMORY_MAPPED)
+            true
+        } catch (e: Throwable) {
+            Logs.w(e)
+            false
+        }
+    }
+
+    fun isReady(): Boolean = countryFile.exists() && asnFile.exists()
+
+    fun close() {
+        try { countryReader?.close() } catch (_: Throwable) {}
+        try { asnReader?.close() } catch (_: Throwable) {}
+        countryReader = null
+        asnReader = null
+        ipCache.clear()
+        hostCache.clear()
+    }
+
+    suspend fun lookup(host: String): Info? = withContext(Dispatchers.IO) {
+        if (!ensureLoaded()) return@withContext null
+        val ip = resolveCached(host) ?: return@withContext null
+        ipCache[ip]?.let { return@withContext it }
+        val addr = try { InetAddress.getByName(ip) } catch (_: Throwable) { return@withContext null }
+
+        val cc = try {
+            @Suppress("UNCHECKED_CAST")
+            val r = countryReader?.get(addr, Map::class.java) as? Map<String, Any?>
+            val country = r?.get("country") as? Map<*, *>
+            val code = (country?.get("iso_code") as? String) ?: (country?.get("isoCode") as? String)
+            val name = (country?.get("names") as? Map<*, *>)?.get("en") as? String
+            code to name
+        } catch (_: Throwable) { null to null }
+
+        val asn = try {
+            @Suppress("UNCHECKED_CAST")
+            val r = asnReader?.get(addr, Map::class.java) as? Map<String, Any?>
+            val n = (r?.get("autonomous_system_number") as? Number)?.toLong()
+            val name = r?.get("autonomous_system_organization") as? String
+            n to name
+        } catch (_: Throwable) { null to null }
+
+        val info = Info(cc.first, cc.second, asn.first, asn.second)
+        ipCache[ip] = info
+        info
+    }
+
+    private suspend fun resolveCached(host: String): String? {
+        if (isIpLiteral(host)) return host
+        hostCache[host]?.let { return it.takeIf { it.isNotEmpty() } }
+        return withContext(Dispatchers.IO) {
+            val ip = try {
+                InetAddress.getByName(host).hostAddress
+            } catch (_: Throwable) { null }
+            hostCache[host] = ip ?: ""
+            ip
+        }
+    }
+
+    private fun isIpLiteral(s: String): Boolean {
+        if (s.isEmpty()) return false
+        return s.matches(Regex("^\\d+\\.\\d+\\.\\d+\\.\\d+$")) || s.contains(':')
+    }
+
+    fun countryFlag(code: String?): String {
+        if (code.isNullOrBlank() || code.length != 2) return ""
+        val base = 0x1F1E6 - 'A'.code
+        val sb = StringBuilder(4)
+        for (ch in code.uppercase()) {
+            if (ch !in 'A'..'Z') return ""
+            sb.appendCodePoint(base + ch.code)
+        }
+        return sb.toString()
+    }
+
+    suspend fun downloadDatabases(progress: (String) -> Unit = {}): Boolean = withContext(Dispatchers.IO) {
+        val yearMonth = java.time.YearMonth.now().let { "%04d-%02d".format(it.year, it.monthValue) }
+        val candidates = listOf(yearMonth, prevMonth(yearMonth))
+        var success = true
+        success = success and downloadOne(
+            "country", candidates.map { "https://download.db-ip.com/free/dbip-country-lite-$it.mmdb.gz" }, countryFile, progress
+        )
+        success = success and downloadOne(
+            "asn", candidates.map { "https://download.db-ip.com/free/dbip-asn-lite-$it.mmdb.gz" }, asnFile, progress
+        )
+        if (success) {
+            close()
+            ensureLoaded()
+        }
+        success
+    }
+
+    private fun prevMonth(ym: String): String {
+        val (y, m) = ym.split("-").map { it.toInt() }
+        val pm = if (m == 1) "%04d-12".format(y - 1) else "%04d-%02d".format(y, m - 1)
+        return pm
+    }
+
+    private suspend fun downloadOne(label: String, urls: List<String>, target: File, progress: (String) -> Unit): Boolean {
+        val client = Libsagernetcore.newHttpClient().apply {
+            keepAlive()
+            if (SagerNet.started && DataStore.startedProfile > 0) {
+                useUDS(SagerNet.deviceStorage.noBackupFilesDir.toString() + "/ipc.sock")
+            }
+        }
+        for (url in urls) {
+            val gz = File(target.parentFile, "${target.name}.gz.tmp")
+            val tmp = File(target.parentFile, "${target.name}.tmp")
+            try {
+                progress(label)
+                val response = client.newRequest().apply {
+                    setURL(url)
+                    setUserAgent("BetterExclave/0.17 (GeoIP)")
+                }.execute()
+                response.writeTo(gz.canonicalPath)
+                if (!gz.exists() || gz.length() < 1024) {
+                    gz.delete()
+                    continue
+                }
+                FileInputStream(gz).use { fin ->
+                    GZIPInputStream(fin).use { input ->
+                        FileOutputStream(tmp).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                gz.delete()
+                if (target.exists()) target.delete()
+                tmp.renameTo(target)
+                return true
+            } catch (e: Throwable) {
+                Logs.w(e)
+                gz.delete()
+                tmp.delete()
+            }
+        }
+        return false
+    }
+}

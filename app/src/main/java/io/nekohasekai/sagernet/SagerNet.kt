@@ -297,9 +297,10 @@ class SagerNet : Application(),
             }
             Libsagernetcore.setDiscardIPv6(!linkAddresses.any { it.address is Inet6Address && !it.address.isLinkLocalAddress })
 
+            val networkChanged = currentNetwork != null && currentNetwork != network
+            val linkAddressesChanged = currentLinkAddresses != null && !linkAddresses.containsAll(currentLinkAddresses!!)
+
             if (DataStore.interruptReusedConnections) {
-                val networkChanged = currentNetwork != null && currentNetwork != network
-                val linkAddressesChanged = currentLinkAddresses != null && !linkAddresses.containsAll(currentLinkAddresses!!)
                 if (networkChanged || linkAddressesChanged) {
                     if (DataStore.logLevel == LogLevel.DEBUG) {
                         Log.d("Exclave", "network changed, interrupt reused connections")
@@ -310,6 +311,13 @@ class SagerNet : Application(),
 
             currentNetwork = network
             currentLinkAddresses = linkAddresses
+
+            if (DataStore.reconnectOnNetworkChange && networkChanged && started) {
+                if (DataStore.logLevel == LogLevel.DEBUG) {
+                    Log.d("Exclave", "network changed, reconnecting service")
+                }
+                reloadService()
+            }
         }
 
         fun startService() = ContextCompat.startForegroundService(

@@ -94,6 +94,14 @@ class GroupSettingsActivity(
         DataStore.subscriptionExpiryDate = sub.expiryDate
         DataStore.subscriptionNameFilter = sub.nameFilter
         DataStore.subscriptionNameFilter1 = sub.nameFilter1
+        DataStore.subscriptionHappSpoof = sub.happSpoof
+        DataStore.subscriptionHappAppVersion = sub.happAppVersion
+        DataStore.subscriptionHappOs = sub.happOs
+        DataStore.subscriptionHappOsVersion = sub.happOsVersion
+        DataStore.subscriptionHappDeviceModel = sub.happDeviceModel
+        DataStore.subscriptionHappLocale = sub.happLocale
+        DataStore.subscriptionHappUserId = sub.happUserId
+        DataStore.subscriptionHappHwid = sub.happHwid
         DataStore.frontProxyOutbound = frontProxy
         DataStore.landingProxyOutbound = landingProxy
         DataStore.frontProxy = if (frontProxy >= 0) 1 else 0
@@ -127,6 +135,14 @@ class GroupSettingsActivity(
                 expiryDate = DataStore.subscriptionExpiryDate
                 nameFilter = DataStore.subscriptionNameFilter
                 nameFilter1 = DataStore.subscriptionNameFilter1
+                happSpoof = DataStore.subscriptionHappSpoof
+                happAppVersion = DataStore.subscriptionHappAppVersion
+                happOs = DataStore.subscriptionHappOs
+                happOsVersion = DataStore.subscriptionHappOsVersion
+                happDeviceModel = DataStore.subscriptionHappDeviceModel
+                happLocale = DataStore.subscriptionHappLocale
+                happUserId = DataStore.subscriptionHappUserId
+                happHwid = DataStore.subscriptionHappHwid
             }
         } else {
             subscription = SubscriptionBean().applyDefaultValues()
@@ -216,6 +232,18 @@ class GroupSettingsActivity(
         }
         subscriptionAutoUpdate.setOnPreferenceChangeListener { _, newValue ->
             subscriptionAutoUpdateDelay.isEnabled = (newValue as Boolean)
+            true
+        }
+
+        val happSpoof = findPreference<SwitchPreference>(Key.SUBSCRIPTION_HAPP_SPOOF)!!
+        val happOptions = findPreference<Preference>(Key.SUBSCRIPTION_HAPP_OPTIONS)!!
+        happOptions.isVisible = happSpoof.isChecked
+        happSpoof.setOnPreferenceChangeListener { _, newValue ->
+            happOptions.isVisible = newValue as Boolean
+            true
+        }
+        happOptions.setOnPreferenceClickListener {
+            startActivity(Intent(this@GroupSettingsActivity, HappOptionsActivity::class.java))
             true
         }
     }
