@@ -11,9 +11,9 @@ A fork of Exclave with some QoL features.
 - Single-outbound subscription entries use just `remarks` as the proxy name.
 - Per-subscription **Happ Spoof** with editable User-Agent fields and HWID.
 - **Show server info**: country flag and ASN under each proxy (DB-IP).
-- Transport and security in the type label (`VLESS ⫽ gRPC ⫽ REALITY`,
-  `splithttp` → `XHTTP`).
+- Transport and security in the type label (`VLESS ⫽ gRPC ⫽ REALITY`).
 - **Reconnect after network change** and **Auto-restart Hysteria 2** options.
+- Various performance improvements.
 
 ## Original README:
 
