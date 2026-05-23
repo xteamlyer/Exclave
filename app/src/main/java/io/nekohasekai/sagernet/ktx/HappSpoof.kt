@@ -1,12 +1,34 @@
 package io.nekohasekai.sagernet.ktx
 
+import android.os.Build
 import io.nekohasekai.sagernet.database.SubscriptionBean
 import libsagernetcore.HTTPRequest
 import java.security.SecureRandom
 
 object HappSpoof {
 
+    private const val FALLBACK_DEVICE_MODEL = "Pixel 7 Pro"
+    private const val FALLBACK_OS_VERSION = "16"
+
     private val rng = SecureRandom()
+
+    fun defaultDeviceModel(): String {
+        return Build.MODEL.takeIf { it.isNotBlank() } ?: FALLBACK_DEVICE_MODEL
+    }
+
+    fun defaultOsVersion(): String {
+        return Build.VERSION.RELEASE.takeIf { it.isNotBlank() } ?: FALLBACK_OS_VERSION
+    }
+
+    private fun String?.orDefaultDeviceModel(): String {
+        val value = this?.trim().orEmpty()
+        return value.ifEmpty { defaultDeviceModel() }
+    }
+
+    private fun String?.orDefaultOsVersion(): String {
+        val value = this?.trim().orEmpty()
+        return value.ifEmpty { defaultOsVersion() }
+    }
 
     fun randomUserId(): String {
         val sb = StringBuilder(20)
@@ -38,8 +60,8 @@ object HappSpoof {
         ensureIds(sub)
         val appVersion = sub.happAppVersion.ifEmpty { "3.21.1" }
         val os = sub.happOs.ifEmpty { "Android" }
-        val osVersion = sub.happOsVersion.ifEmpty { "16" }
-        val deviceModel = sub.happDeviceModel.ifEmpty { "Pixel 7 Pro" }
+        val osVersion = sub.happOsVersion.orDefaultOsVersion()
+        val deviceModel = sub.happDeviceModel.orDefaultDeviceModel()
         val locale = sub.happLocale.ifEmpty { "en" }
         request.setUserAgent("Happ/$appVersion/$os/${sub.happUserId}")
         request.setHeader("x-device-locale", locale)

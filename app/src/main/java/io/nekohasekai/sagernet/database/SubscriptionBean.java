@@ -19,6 +19,8 @@
 
 package io.nekohasekai.sagernet.database;
 
+import android.os.Build;
+
 import androidx.annotation.NonNull;
 
 import com.esotericsoftware.kryo.io.ByteBufferInput;
@@ -250,8 +252,8 @@ public class SubscriptionBean extends Serializable {
         if (happSpoof == null) happSpoof = false;
         if (happAppVersion == null) happAppVersion = "3.21.1";
         if (happOs == null) happOs = "Android";
-        if (happOsVersion == null) happOsVersion = "16";
-        if (happDeviceModel == null) happDeviceModel = "Pixel 7 Pro";
+        if (happOsVersion == null) happOsVersion = Build.VERSION.RELEASE;
+        if (happDeviceModel == null) happDeviceModel = Build.MODEL;
         if (happLocale == null) happLocale = "en";
         if (happUserId == null) happUserId = "";
         if (happHwid == null) happHwid = "";
