@@ -361,8 +361,8 @@
     </string-array>
 
     <string-array name="config_type_entry">
-        <item>V2Ray</item>
-        <item>V2Ray Outbound</item>
+        <item>@string/custom_config</item>
+        <item>@string/custom_outbound</item>
     </string-array>
     <string-array name="config_type_value">
         <item>v2ray</item>
@@ -792,6 +792,7 @@
         <item>@string/language_id_display_name</item>
         <item>@string/language_it_display_name</item>
         <item>@string/language_ja_display_name</item>
+        <item>@string/language_ko_display_name</item>
         <item>@string/language_nb_NO_display_name</item>
         <item>@string/language_ru_display_name</item>
         <item>@string/language_tr_display_name</item>
@@ -809,6 +810,7 @@
         <item>id</item>
         <item>it</item>
         <item>ja</item>
+        <item>ko</item>
         <item>nb-NO</item>
         <item>ru</item>
         <item>tr</item>
@@ -895,6 +897,12 @@
         <item>cubic</item>
         <item>new-reno</item>
         <item>brutal</item>
+    </string-array>
+
+    <string-array name="hysteria2_obfs_type">
+        <item />
+        <item>salamander</item>
+        <item>gecko</item>
     </string-array>
 
 </resources>

@@ -24,7 +24,7 @@ import io.nekohasekai.sagernet.ktx.isValidHysteriaPort
 import io.nekohasekai.sagernet.ktx.listByLineOrComma
 import io.nekohasekai.sagernet.ktx.queryParameter
 import io.nekohasekai.sagernet.ktx.queryParameterNotBlank
-import libsagernetcore.Libsagernetcore
+import libexclavecore.Libexclavecore
 
 fun parseHysteria2(rawURL: String): Hysteria2Bean {
     var url = rawURL
@@ -40,7 +40,7 @@ fun parseHysteria2(rawURL: String): Hysteria2Bean {
         }
     }
 
-    val link = Libsagernetcore.parseURL(url)
+    val link = Libexclavecore.parseURL(url)
     return Hysteria2Bean().apply {
         name = link.fragment
         serverAddress = link.host.ifEmpty { error("empty host") }
@@ -94,11 +94,15 @@ fun parseHysteria2(rawURL: String): Hysteria2Bean {
             pinnedPeerCertificateSha256 = it.replace(":", "").replace("-", "").lowercase()
         }
         link.queryParameter("obfs")?.also {
-            if (it.isNotEmpty() && it != "salamander") {
-                error("unsupported obfs")
-            }
-            link.queryParameter("obfs-password")?.also {
-                obfs = it
+            when (it) {
+                "" -> {}
+                "salamander", "gecko"-> {
+                    obfsType = it
+                    link.queryParameter("obfs-password")?.also { password ->
+                        obfsPassword = password
+                    }
+                }
+                else -> error("unsupported obfs")
             }
         }
     }
@@ -112,7 +116,7 @@ fun Hysteria2Bean.toUri(): String? {
         error("empty server address")
     }
 
-    val builder = Libsagernetcore.newURL("hysteria2").apply {
+    val builder = Libexclavecore.newURL("hysteria2").apply {
         // fuck port hopping URL
         rawHost = if (serverAddress.contains(":")) {
             "[$serverAddress]:$serverPorts"
@@ -137,10 +141,12 @@ fun Hysteria2Bean.toUri(): String? {
     if (pinnedPeerCertificateSha256.isNotEmpty()) {
         builder.addQueryParameter("pinSHA256", pinnedPeerCertificateSha256.listByLineOrComma()[0].replace(":", "").lowercase())
     }
-    if (obfs.isNotEmpty()) {
-        // obfs password must not be empty
-        builder.addQueryParameter("obfs", "salamander")
-        builder.addQueryParameter("obfs-password", obfs)
+    if (obfsType.isNotEmpty()) {
+        builder.addQueryParameter("obfs", obfsType)
+        if (obfsPassword.isEmpty()) {
+            error("empty obfs password")
+        }
+        builder.addQueryParameter("obfs-password", obfsPassword)
     }
     if (name.isNotEmpty()) {
         builder.fragment = name
