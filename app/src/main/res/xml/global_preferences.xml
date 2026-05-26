@@ -288,6 +288,42 @@
             app:title="@string/insecure_warn" />
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/cag_mock_geo_location">
+        <Preference
+            app:icon="@drawable/ic_baseline_info_24"
+            app:key="mockGeoLocationHelp"
+            app:selectable="false"
+            app:title="@string/mock_geo_location_help_title" />
+        <Preference
+            app:icon="@drawable/ic_baseline_manage_search_24"
+            app:key="openMockLocationSettings"
+            app:title="@string/open_developer_options" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_center_focus_weak_24"
+            app:key="mockGeoLocation"
+            app:summary="@string/mock_geo_location_sum"
+            app:title="@string/mock_geo_location" />
+        <io.nekohasekai.sagernet.widget.SimpleMenuPreference
+            app:defaultValue="0"
+            app:entries="@array/geo_location_source_entry"
+            app:entryValues="@array/geo_location_source_value"
+            app:icon="@drawable/ic_baseline_center_focus_weak_24"
+            app:key="geoLocationSource"
+            app:summary="@string/geo_location_source_sum"
+            app:title="@string/geo_location_source"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_vpn_key_24"
+            app:key="ipinfoApiKey"
+            app:summary="@string/ipinfo_api_key_sum"
+            app:title="@string/ipinfo_api_key" />
+        <Preference
+            app:icon="@drawable/ic_baseline_download_24"
+            app:key="updateGeoCityDb"
+            app:summary="@string/update_geo_city_db_sum"
+            app:title="@string/update_geo_city_db" />
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/cag_dns">
         <io.nekohasekai.sagernet.widget.NonBlackEditTextPreference
             app:defaultValue="tcp://1.1.1.1"

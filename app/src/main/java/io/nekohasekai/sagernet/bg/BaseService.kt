@@ -418,6 +418,7 @@ class BaseService {
             data.changeState(State.Stopping)
 
             runOnMainDispatcher {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.stop()
                 data.autoRestartJob?.cancel()
                 data.autoRestartJob = null
                 data.connectingJob?.cancelAndJoin() // ensure stop connecting first
@@ -524,6 +525,7 @@ class BaseService {
                         scheduleHysteria2AutoRestart(profile)
                         data.binder.checkLoop()
                         lateInit()
+                        io.nekohasekai.sagernet.utils.MockLocationHelper.syncForCurrentProfile()
                     }
 
                     for ((type, routeName) in proxy.config.alerts) {

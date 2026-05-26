@@ -278,6 +278,9 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var interruptReusedConnections by configurationStore.boolean(Key.INTERRUPT_REUSED_CONNECTIONS) { true }
     var reconnectOnNetworkChange by configurationStore.boolean(Key.RECONNECT_ON_NETWORK_CHANGE)
     var showServerInfo by configurationStore.boolean(Key.SHOW_SERVER_INFO)
+    var mockGeoLocation by configurationStore.boolean(Key.MOCK_GEO_LOCATION)
+    var geoLocationSource by configurationStore.stringToInt(Key.GEO_LOCATION_SOURCE)
+    var ipinfoApiKey by configurationStore.string(Key.IPINFO_API_KEY)
     var hysteria2AutoRestart by configurationStore.stringToInt(Key.HYSTERIA2_AUTO_RESTART)
 
     // cache

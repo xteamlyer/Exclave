@@ -8,7 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import libsagernetcore.Libsagernetcore
+import libexclavecore.Libexclavecore
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -21,12 +21,22 @@ object GeoIPManager {
     private val baseDir by lazy { File(SagerNet.application.filesDir, "geoip").apply { mkdirs() } }
     private val countryFile get() = File(baseDir, "country.mmdb")
     private val asnFile get() = File(baseDir, "asn.mmdb")
+    private val cityFile get() = File(baseDir, "city.mmdb")
 
     private var countryReader: Reader? = null
     private var asnReader: Reader? = null
+    private var cityReader: Reader? = null
     private val readerLock = Mutex()
 
-    data class Info(val countryCode: String?, val countryName: String?, val asn: Long?, val asnName: String?)
+    data class Info(
+        val countryCode: String?,
+        val countryName: String?,
+        val asn: Long?,
+        val asnName: String?,
+        val city: String? = null,
+        val latitude: Double? = null,
+        val longitude: Double? = null,
+    )
 
     private val ipCache = ConcurrentHashMap<String, Info>()
     private val hostCache = ConcurrentHashMap<String, String?>()
@@ -44,13 +54,29 @@ object GeoIPManager {
         }
     }
 
+    suspend fun ensureCityLoaded(): Boolean = readerLock.withLock {
+        if (cityReader != null) return@withLock true
+        if (!cityFile.exists()) return@withLock false
+        try {
+            cityReader = Reader(cityFile, Reader.FileMode.MEMORY_MAPPED)
+            true
+        } catch (e: Throwable) {
+            Logs.w(e)
+            false
+        }
+    }
+
     fun isReady(): Boolean = countryFile.exists() && asnFile.exists()
+
+    fun isCityReady(): Boolean = cityFile.exists()
 
     fun close() {
         try { countryReader?.close() } catch (_: Throwable) {}
         try { asnReader?.close() } catch (_: Throwable) {}
+        try { cityReader?.close() } catch (_: Throwable) {}
         countryReader = null
         asnReader = null
+        cityReader = null
         ipCache.clear()
         hostCache.clear()
     }
@@ -78,9 +104,39 @@ object GeoIPManager {
             n to name
         } catch (_: Throwable) { null to null }
 
-        val info = Info(cc.first, cc.second, asn.first, asn.second)
+        val cachedLoc = ServerGeoLookup.getCached(host)
+        val info = Info(
+            cc.first ?: cachedLoc?.countryCode,
+            cc.second ?: cachedLoc?.countryName,
+            asn.first,
+            asn.second,
+            cachedLoc?.city,
+            cachedLoc?.latitude,
+            cachedLoc?.longitude,
+        )
         ipCache[ip] = info
         info
+    }
+
+    suspend fun lookupCityMmdb(ip: String): Info? = withContext(Dispatchers.IO) {
+        if (!ensureCityLoaded()) return@withContext null
+        val addr = try { InetAddress.getByName(ip) } catch (_: Throwable) { return@withContext null }
+        try {
+            @Suppress("UNCHECKED_CAST")
+            val r = cityReader?.get(addr, Map::class.java) as? Map<String, Any?> ?: return@withContext null
+            val country = r["country"] as? Map<*, *>
+            val countryCode = (country?.get("iso_code") as? String) ?: (country?.get("isoCode") as? String)
+            val countryName = (country?.get("names") as? Map<*, *>)?.get("en") as? String
+            val city = (r["city"] as? Map<*, *>)?.let { c ->
+                (c["names"] as? Map<*, *>)?.get("en") as? String
+            }
+            val location = r["location"] as? Map<*, *>
+            val lat = (location?.get("latitude") as? Number)?.toDouble() ?: return@withContext null
+            val lon = (location?.get("longitude") as? Number)?.toDouble() ?: return@withContext null
+            Info(countryCode, countryName, null, null, city, lat, lon)
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     private suspend fun resolveCached(host: String): String? {
@@ -111,7 +167,10 @@ object GeoIPManager {
         return sb.toString()
     }
 
-    suspend fun downloadDatabases(progress: (String) -> Unit = {}): Boolean = withContext(Dispatchers.IO) {
+    suspend fun downloadDatabases(
+        downloadCity: Boolean = false,
+        progress: (String) -> Unit = {},
+    ): Boolean = withContext(Dispatchers.IO) {
         val yearMonth = java.time.YearMonth.now().let { "%04d-%02d".format(it.year, it.monthValue) }
         val candidates = listOf(yearMonth, prevMonth(yearMonth))
         var success = true
@@ -121,9 +180,15 @@ object GeoIPManager {
         success = success and downloadOne(
             "asn", candidates.map { "https://download.db-ip.com/free/dbip-asn-lite-$it.mmdb.gz" }, asnFile, progress
         )
+        if (downloadCity) {
+            val cityUrls = candidates.map { "https://download.db-ip.com/free/dbip-city-lite-$it.mmdb.gz" } +
+                listOf("https://cdn.jsdelivr.net/npm/dbip-city-lite@latest/dbip-city-lite.mmdb.gz")
+            success = success and downloadOne("city", cityUrls, cityFile, progress)
+        }
         if (success) {
             close()
             ensureLoaded()
+            if (downloadCity) ensureCityLoaded()
         }
         success
     }
@@ -135,7 +200,7 @@ object GeoIPManager {
     }
 
     private suspend fun downloadOne(label: String, urls: List<String>, target: File, progress: (String) -> Unit): Boolean {
-        val client = Libsagernetcore.newHttpClient().apply {
+        val client = Libexclavecore.newHttpClient().apply {
             keepAlive()
             if (SagerNet.started && DataStore.startedProfile > 0) {
                 useUDS(SagerNet.deviceStorage.noBackupFilesDir.toString() + "/ipc.sock")
@@ -173,5 +238,19 @@ object GeoIPManager {
             }
         }
         return false
+    }
+
+    suspend fun downloadCityMmdb(progress: (String) -> Unit = {}): Boolean = withContext(Dispatchers.IO) {
+        val yearMonth = java.time.YearMonth.now().let { "%04d-%02d".format(it.year, it.monthValue) }
+        val candidates = listOf(yearMonth, prevMonth(yearMonth))
+        val cityUrls = candidates.map { "https://download.db-ip.com/free/dbip-city-lite-$it.mmdb.gz" } +
+            listOf("https://cdn.jsdelivr.net/npm/dbip-city-lite@latest/dbip-city-lite.mmdb.gz")
+        val success = downloadOne("city", cityUrls, cityFile, progress)
+        if (success) {
+            try { cityReader?.close() } catch (_: Throwable) {}
+            cityReader = null
+            ensureCityLoaded()
+        }
+        success
     }
 }

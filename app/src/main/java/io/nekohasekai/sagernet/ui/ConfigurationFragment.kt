@@ -1634,11 +1634,12 @@ class ConfigurationFragment @JvmOverloads constructor(
                             val entityId = proxyEntity.id
                             runOnDefaultDispatcher {
                                 val info = io.nekohasekai.sagernet.utils.GeoIPManager.lookup(host)
-                                val text = if (info != null && (info.countryCode != null || info.asnName != null)) {
+                                val text = if (info != null && (info.countryCode != null || info.asnName != null || info.city != null)) {
                                     val flag = io.nekohasekai.sagernet.utils.GeoIPManager.countryFlag(info.countryCode)
+                                    val city = info.city?.let { "$it · " } ?: ""
                                     val name = info.asnName ?: info.countryName ?: ""
                                     val asn = info.asn?.let { " (AS$it)" } ?: ""
-                                    listOf(flag, "$name$asn").filter { it.isNotEmpty() }.joinToString(" ")
+                                    listOf(flag, "$city$name$asn").filter { it.isNotEmpty() }.joinToString(" ")
                                 } else {
                                     ""
                                 }

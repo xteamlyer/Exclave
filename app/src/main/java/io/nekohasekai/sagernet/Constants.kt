@@ -110,6 +110,10 @@ object Key {
     const val INTERRUPT_REUSED_CONNECTIONS = "interruptReusedConnections0"
     const val RECONNECT_ON_NETWORK_CHANGE = "reconnectOnNetworkChange"
     const val SHOW_SERVER_INFO = "showServerInfo"
+    const val MOCK_GEO_LOCATION = "mockGeoLocation"
+    const val GEO_LOCATION_SOURCE = "geoLocationSource"
+    const val IPINFO_API_KEY = "ipinfoApiKey"
+    const val UPDATE_GEO_CITY_DB = "updateGeoCityDb"
     const val UPDATE_GEOIP_DB = "updateGeoIpDb"
     const val HYSTERIA2_AUTO_RESTART = "hysteria2AutoRestart"
 

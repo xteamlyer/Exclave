@@ -2,7 +2,7 @@ package io.nekohasekai.sagernet.ktx
 
 import android.os.Build
 import io.nekohasekai.sagernet.database.SubscriptionBean
-import libsagernetcore.HTTPRequest
+import libexclavecore.HTTPRequest
 import java.security.SecureRandom
 
 object HappSpoof {

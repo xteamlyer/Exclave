@@ -574,9 +574,125 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
             true
         }
+        val mockGeoLocation = findPreference<SwitchPreference>(Key.MOCK_GEO_LOCATION)!!
+        val geoLocationSource = findPreference<io.nekohasekai.sagernet.widget.SimpleMenuPreference>(Key.GEO_LOCATION_SOURCE)!!
+        val ipinfoApiKey = findPreference<androidx.preference.EditTextPreference>(Key.IPINFO_API_KEY)!!
+        val updateGeoCityDb = findPreference<Preference>(Key.UPDATE_GEO_CITY_DB)!!
+        mockGeoLocation.summary = getString(R.string.mock_geo_location_sum) + "\n" + getString(R.string.restart)
+
+        fun refreshMockGeoSourceOptions() {
+            val useIpinfo = DataStore.geoLocationSource == io.nekohasekai.sagernet.utils.ServerGeoLookup.SOURCE_IPINFO
+            ipinfoApiKey.isVisible = useIpinfo
+            updateGeoCityDb.isVisible = !useIpinfo
+        }
+        refreshMockGeoSourceOptions()
+
+        val mockGeoLocationHelp = findPreference<Preference>("mockGeoLocationHelp")!!
+        val openMockLocationSettings = findPreference<Preference>("openMockLocationSettings")!!
+
+        fun refreshMockGeoUi() {
+            val allowed = io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()
+            val intro = getString(R.string.mock_geo_location_intro)
+            mockGeoLocationHelp.summary = if (allowed) {
+                intro + "\n\n" + getString(R.string.mock_geo_location_accuracy_warning) +
+                    "\n\n" + getString(R.string.mock_geo_location_steps_accuracy)
+            } else {
+                intro + "\n\n" + getString(R.string.mock_geo_location_steps_enable)
+            }
+            if (allowed) {
+                openMockLocationSettings.setTitle(R.string.open_location_settings)
+                openMockLocationSettings.summary = null
+            } else {
+                openMockLocationSettings.setTitle(R.string.open_developer_options)
+                openMockLocationSettings.summary = getString(R.string.mock_geo_location_need_app)
+            }
+        }
+
+        fun syncMockGeoSwitchFromPermission() {
+            if (DataStore.mockGeoLocation && !io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()) {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.disableMockGeoSetting()
+                mockGeoLocation.isChecked = false
+            }
+            refreshMockGeoUi()
+        }
+        syncMockGeoSwitchFromPermission()
+
+        openMockLocationSettings.setOnPreferenceClickListener {
+            if (io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()) {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.openLocationSettings(requireContext())
+            } else {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.openDeveloperSettings(requireContext())
+            }
+            true
+        }
+
+        mockGeoLocation.setOnPreferenceChangeListener { _, newValue ->
+            val ctx = requireContext()
+            if (newValue == true) {
+                if (!io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()) {
+                    DataStore.mockGeoLocation = false
+                    mockGeoLocation.isChecked = false
+                    MaterialAlertDialogBuilder(ctx)
+                        .setTitle(R.string.mock_geo_location_dialog_title)
+                        .setMessage(R.string.mock_geo_location_dialog_message)
+                        .setPositiveButton(R.string.open_settings) { _, _ ->
+                            io.nekohasekai.sagernet.utils.MockLocationHelper.openDeveloperSettings(ctx)
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                    return@setOnPreferenceChangeListener false
+                }
+                if (DataStore.geoLocationSource == io.nekohasekai.sagernet.utils.ServerGeoLookup.SOURCE_LOCAL_MMDB
+                    && !io.nekohasekai.sagernet.utils.GeoIPManager.isCityReady()
+                ) {
+                    triggerGeoCityDownload()
+                }
+            } else {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.stop()
+            }
+            refreshMockGeoUi()
+            true
+        }
+        geoLocationSource.setOnPreferenceChangeListener { _, newValue ->
+            refreshMockGeoSourceOptions()
+            if (newValue == io.nekohasekai.sagernet.utils.ServerGeoLookup.SOURCE_LOCAL_MMDB.toString()
+                && DataStore.mockGeoLocation
+                && !io.nekohasekai.sagernet.utils.GeoIPManager.isCityReady()
+            ) {
+                triggerGeoCityDownload()
+            }
+            if (DataStore.mockGeoLocation && io.nekohasekai.sagernet.SagerNet.started) {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.syncForCurrentProfile()
+            }
+            true
+        }
+        updateGeoCityDb.setOnPreferenceClickListener {
+            triggerGeoCityDownload()
+            true
+        }
         findPreference<Preference>(Key.UPDATE_GEOIP_DB)!!.setOnPreferenceClickListener {
             triggerGeoIpDownload()
             true
+        }
+    }
+
+    private fun triggerGeoCityDownload() {
+        val ctx = requireContext()
+        io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher {
+            io.nekohasekai.sagernet.ktx.onMainDispatcher {
+                android.widget.Toast.makeText(ctx, R.string.downloading_geoip_db, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            val ok = io.nekohasekai.sagernet.utils.GeoIPManager.downloadCityMmdb()
+            io.nekohasekai.sagernet.ktx.onMainDispatcher {
+                android.widget.Toast.makeText(
+                    ctx,
+                    if (ok) R.string.geoip_db_download_ok else R.string.geoip_db_download_failed,
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+                if (ok && DataStore.mockGeoLocation && SagerNet.started) {
+                    io.nekohasekai.sagernet.utils.MockLocationHelper.syncForCurrentProfile()
+                }
+            }
         }
     }
 
@@ -591,7 +707,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 android.widget.Toast.makeText(
                     ctx,
                     if (ok) R.string.geoip_db_download_ok else R.string.geoip_db_download_failed,
-                    android.widget.Toast.LENGTH_SHORT
+                    android.widget.Toast.LENGTH_SHORT,
                 ).show()
             }
         }
@@ -603,6 +719,31 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
         if (::isProxyApps.isInitialized) {
             isProxyApps.isChecked = DataStore.proxyApps
+        }
+        findPreference<SwitchPreference>(Key.MOCK_GEO_LOCATION)?.let { mockSwitch ->
+            if (DataStore.mockGeoLocation && !io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()) {
+                io.nekohasekai.sagernet.utils.MockLocationHelper.disableMockGeoSetting()
+                mockSwitch.isChecked = false
+            }
+        }
+        findPreference<Preference>("mockGeoLocationHelp")?.let {
+            val allowed = io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()
+            val intro = getString(R.string.mock_geo_location_intro)
+            it.summary = if (allowed) {
+                intro + "\n\n" + getString(R.string.mock_geo_location_accuracy_warning) +
+                    "\n\n" + getString(R.string.mock_geo_location_steps_accuracy)
+            } else {
+                intro + "\n\n" + getString(R.string.mock_geo_location_steps_enable)
+            }
+        }
+        findPreference<Preference>("openMockLocationSettings")?.let { pref ->
+            if (io.nekohasekai.sagernet.utils.MockLocationHelper.isMockLocationAppAllowed()) {
+                pref.setTitle(R.string.open_location_settings)
+                pref.summary = null
+            } else {
+                pref.setTitle(R.string.open_developer_options)
+                pref.summary = getString(R.string.mock_geo_location_need_app)
+            }
         }
     }
 
