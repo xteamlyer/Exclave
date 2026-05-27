@@ -221,6 +221,9 @@ fun parseV2Ray(link: String): StandardV2RayBean {
                     bean.allowInsecure = true
                 }
             }
+            url.queryParameterNotBlank("fp")?.let {
+                bean.utlsFingerprint = it
+            }
             if (url.scheme == "vless" || url.scheme == "trojan") {
                 // Only parse ECH for shit VLESS or Trojan free nodes
                 url.queryParameter("ech")?.let {
@@ -877,6 +880,9 @@ fun StandardV2RayBean.toUri(): String? {
             }
             if (pinnedPeerCertificateSha256.isNotEmpty()) {
                 builder.addQueryParameter("pcs", pinnedPeerCertificateSha256.listByLineOrComma().joinToString("~"))
+            }
+            if (utlsFingerprint.isNotEmpty()) {
+                builder.addQueryParameter("fp", utlsFingerprint)
             }
             if (this is VLESSBean && flow.isNotEmpty()) {
                 builder.addQueryParameter("flow", flow.removeSuffix("-udp443"))
