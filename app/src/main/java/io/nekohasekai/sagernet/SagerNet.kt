@@ -248,10 +248,6 @@ class SagerNet : Application(),
                             application.getText(R.string.service_proxy),
                             NotificationManager.IMPORTANCE_LOW
                         ), NotificationChannel(
-                            "service-transproxy",
-                            application.getText(R.string.service_transproxy),
-                            NotificationManager.IMPORTANCE_LOW
-                        ), NotificationChannel(
                             "service-subscription",
                             application.getText(R.string.service_subscription),
                             NotificationManager.IMPORTANCE_DEFAULT

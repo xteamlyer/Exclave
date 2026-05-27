@@ -196,9 +196,6 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                 realitySettings.getString("mldsa65Verify")?.also {
                                     v2rayBean.realityMldsa65Verify = it
                                 }
-                                realitySettings.getString("fingerprint")?.also {
-                                    v2rayBean.realityFingerprint = it
-                                }
                             }
                         }
                     }

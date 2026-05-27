@@ -36,7 +36,6 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.*
-import io.nekohasekai.sagernet.Key.MODE_TRANSPROXY
 import io.nekohasekai.sagernet.Key.MODE_VPN
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
@@ -168,7 +167,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             enablePcap.isEnabled = newValue == MODE_VPN && tunImplementation.value.toInt() == TunImplementation.GVISOR
             appTrafficStatistics.isEnabled = newValue == MODE_VPN
             isProxyApps.isEnabled = newValue == MODE_VPN
-            bypassLan.isEnabled = newValue == MODE_VPN || newValue == MODE_TRANSPROXY
+            bypassLan.isEnabled = newValue == MODE_VPN
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 appendHttpProxy.isVisible = requireHttp.isChecked && newValue == MODE_VPN
                         && httpUsername.isVisible && httpUsername.text.isNullOrEmpty()
@@ -294,7 +293,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             newValue as Boolean
         }
 
-        bypassLan.isEnabled = serviceMode.value == MODE_VPN || serviceMode.value == MODE_TRANSPROXY
+        bypassLan.isEnabled = serviceMode.value == MODE_VPN
         bypassLan.setOnPreferenceChangeListener { _, _ ->
             needReload()
             true

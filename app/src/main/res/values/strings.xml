@@ -50,8 +50,6 @@
     <string name="service_mode">Service mode</string>
     <string name="service_mode_proxy">Proxy only</string>
     <string name="service_mode_vpn">VPN</string>
-    <string name="service_mode_transproxy">Transparent proxy (root)</string>
-    <string name="root_not_available">Root access is not available. Please grant superuser permission.</string>
     <string name="port_proxy">SOCKS5 proxy port</string>
     <string name="port_http">HTTP proxy port</string>
     <string name="port_transproxy">Transparent proxy port</string>
@@ -176,7 +174,6 @@
     <!-- notification category -->
     <string name="service_vpn">VPN Service</string>
     <string name="service_proxy">Proxy Service</string>
-    <string name="service_transproxy">Transparent Proxy Service</string>
     <string name="forward_success">Proxy started.</string>
     <string name="invalid_server">Invalid server address</string>
     <string name="stop">Stop</string>

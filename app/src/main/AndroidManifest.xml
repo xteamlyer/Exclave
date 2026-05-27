@@ -289,17 +289,6 @@
         </service>
 
         <service
-            android:name="io.nekohasekai.sagernet.bg.TransproxyService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:process=":bg">
-
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="transproxy" />
-        </service>
-
-        <service
             android:name="io.nekohasekai.sagernet.bg.VpnService"
             android:exported="false"
             android:foregroundServiceType="systemExempted"

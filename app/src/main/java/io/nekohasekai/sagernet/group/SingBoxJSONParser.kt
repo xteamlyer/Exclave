@@ -223,9 +223,6 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                                         }
                                     }
                                 }
-                                tls.getString("utls")?.also {
-                                    v2rayBean.realityFingerprint = it
-                                }
                                 if (v2rayBean is VLESSBean || v2rayBean is TrojanBean) {
                                     // Only parse ECH for shit VLESS or Trojan free nodes
                                     tls.getObject("ech")?.also { ech ->
@@ -774,9 +771,6 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                                         }
                                     }
                                 }
-                            }
-                            tls.getString("utls")?.also {
-                                realityFingerprint = it
                             }
                             /*tls.getObject("ech")?.also { ech ->
                                 ech.getBoolean("enabled")?.also { enabled ->

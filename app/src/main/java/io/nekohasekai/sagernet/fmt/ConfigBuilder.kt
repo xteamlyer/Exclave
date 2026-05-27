@@ -451,9 +451,7 @@ fun buildV2RayConfig(
                 })
             }
 
-            val isTransproxyMode = DataStore.serviceMode == Key.MODE_TRANSPROXY
-            if (DataStore.requireTransproxy || isTransproxyMode) {
-                val transproxyNetwork = if (isTransproxyMode) "tcp,udp" else "tcp"
+            if (DataStore.requireTransproxy) {
                 inbounds.add(InboundObject().apply {
                     tag = TAG_TRANS
                     listen = bind
@@ -461,7 +459,7 @@ fun buildV2RayConfig(
                     protocol = "dokodemo-door"
                     settings = LazyInboundConfigurationObject(this,
                         DokodemoDoorInboundConfigurationObject().apply {
-                            network = transproxyNetwork
+                            network = "tcp"
                             followRedirect = true
                         })
                     if (trafficSniffing || useFakeDns) {
@@ -486,7 +484,7 @@ fun buildV2RayConfig(
                         protocol = "dokodemo-door"
                         settings = LazyInboundConfigurationObject(this,
                             DokodemoDoorInboundConfigurationObject().apply {
-                                network = transproxyNetwork
+                                network = "tcp"
                                 followRedirect = true
                             })
                         if (trafficSniffing || useFakeDns) {
@@ -2534,7 +2532,7 @@ fun buildV2RayConfig(
             })
         }
 
-        if (!forTest && (DataStore.requireDnsInbound || DataStore.serviceMode == Key.MODE_TRANSPROXY) && DataStore.localDNSPort > 0) {
+        if (!forTest && DataStore.requireDnsInbound && DataStore.localDNSPort > 0) {
             inbounds.add(InboundObject().apply {
                 tag = TAG_DNS_IN
                 listen = bind
