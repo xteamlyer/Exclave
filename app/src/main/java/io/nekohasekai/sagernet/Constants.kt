@@ -273,6 +273,10 @@ object Key {
     const val SERVER_SING_MUX_PADDING = "serverSingMuxPadding"
 
     const val EXPERIMENTAL_FLAGS = "experimentalFlags"
+    const val OVERRIDE_UTLS_FP_TLS = "overrideUTLSFingerprintForTLS"
+    const val OVERRIDE_UTLS_FP_REALITY = "overrideUTLSFingerprintForREALITY"
+    const val SERVER_SPLITHTTP_SESSION_ID_TABLE = "serverSplithttpSessionIDTable"
+    const val SERVER_SPLITHTTP_SESSION_ID_LENGTH = "serverSplithttpSessionIDLength"
 
     const val BALANCER_TYPE = "balancerType"
     const val BALANCER_GROUP = "balancerGroup"

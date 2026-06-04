@@ -51,6 +51,8 @@ public abstract class StandardV2RayBean extends AbstractBean {
     public String meekUrl;
     public String splithttpMode;
     public String splithttpExtra;
+    public String splithttpSessionIDTable;
+    public String splithttpSessionIDLength;
 
     public String certificates;
     public String pinnedPeerCertificateChainSha256;
@@ -120,6 +122,8 @@ public abstract class StandardV2RayBean extends AbstractBean {
         if (meekUrl == null) meekUrl = "";
         if (splithttpMode == null) splithttpMode = "auto";
         if (splithttpExtra == null) splithttpExtra = "";
+        if (splithttpSessionIDTable == null) splithttpSessionIDTable = "";
+        if (splithttpSessionIDLength == null) splithttpSessionIDLength = "";
 
         if (security == null) security = "none";
         if (sni == null) sni = "";
@@ -172,7 +176,7 @@ public abstract class StandardV2RayBean extends AbstractBean {
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(36);
+        output.writeInt(37);
         super.serialize(output);
 
         output.writeString(uuid);
@@ -217,6 +221,8 @@ public abstract class StandardV2RayBean extends AbstractBean {
                 output.writeBoolean(shUseBrowserForwarder);
                 output.writeString(splithttpMode);
                 output.writeString(splithttpExtra);
+                output.writeString(splithttpSessionIDTable);
+                output.writeString(splithttpSessionIDLength);
                 break;
             }
             case "quic": {
@@ -423,6 +429,10 @@ public abstract class StandardV2RayBean extends AbstractBean {
                 }
                 if (version >= 24) {
                     splithttpExtra = input.readString();
+                }
+                if (version >= 37) {
+                    splithttpSessionIDTable = input.readString();
+                    splithttpSessionIDLength = input.readString();
                 }
                 break;
             }

@@ -130,6 +130,8 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
         DataStore.serverEarlyDataHeaderName = earlyDataHeaderName
         DataStore.serverSplithttpMode = splithttpMode
         DataStore.serverSplithttpExtra = splithttpExtra
+        DataStore.serverSplithttpSessionIDTable = splithttpSessionIDTable
+        DataStore.serverSplithttpSessionIDLength = splithttpSessionIDLength
         DataStore.serverUTLSFingerprint = utlsFingerprint
         DataStore.serverEchEnabled = echEnabled
         DataStore.serverEchConfig = echConfig
@@ -237,6 +239,8 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
         earlyDataHeaderName = DataStore.serverEarlyDataHeaderName
         splithttpMode = DataStore.serverSplithttpMode
         splithttpExtra = DataStore.serverSplithttpExtra
+        splithttpSessionIDTable = DataStore.serverSplithttpSessionIDTable
+        splithttpSessionIDLength = DataStore.serverSplithttpSessionIDLength
         utlsFingerprint = DataStore.serverUTLSFingerprint
         mtlsCertificate = DataStore.serverMtlsCertificate
         mtlsCertificatePrivateKey = DataStore.serverMtlsCertificatePrivateKey

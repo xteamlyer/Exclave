@@ -952,7 +952,7 @@ fun buildV2RayConfig(
                                                 if (bean.allowInsecure) {
                                                     allowInsecure = true
                                                 }
-                                                val overrideFingerprint = DataStore.experimentalFlagsProperties.getProperty("overrideUTLSFingerprintForTLS")
+                                                val overrideFingerprint = DataStore.overrideUTLSFingerprintForTLS
                                                 if (!overrideFingerprint.isNullOrEmpty()) {
                                                     fingerprint = overrideFingerprint
                                                 } else if (bean.utlsFingerprint.isNotEmpty()) {
@@ -982,7 +982,7 @@ fun buildV2RayConfig(
                                                 if (bean.realityMldsa65Verify.isNotEmpty()) {
                                                     mldsa65Verify = bean.realityMldsa65Verify
                                                 }
-                                                val overrideFingerprint = DataStore.experimentalFlagsProperties.getProperty("overrideUTLSFingerprintForREALITY")
+                                                val overrideFingerprint = DataStore.overrideUTLSFingerprintForREALITY
                                                 if (!overrideFingerprint.isNullOrEmpty()) {
                                                     fingerprint = overrideFingerprint
                                                 } else if (bean.realityFingerprint.isNotEmpty()) {
@@ -1127,6 +1127,10 @@ fun buildV2RayConfig(
                                                 if (bean.splithttpMode != "auto") {
                                                     mode = bean.splithttpMode
                                                 }
+                                                if (bean.splithttpSessionIDTable.isNotEmpty()) {
+                                                    sessionIDTable = bean.splithttpSessionIDTable
+                                                    sessionIDLength = bean.splithttpSessionIDLength.ifEmpty { "24-32" }
+                                                }
                                                 if (bean.splithttpExtra.isNotEmpty()) {
                                                     try {
                                                         parseJson(bean.splithttpExtra).asJsonObject?.also { extra ->
@@ -1148,6 +1152,15 @@ fun buildV2RayConfig(
                                                             }
                                                             extra.getBoolean("noGRPCHeader", ignoreCase = true)?.also {
                                                                 noGRPCHeader = it
+                                                            }
+                                                            extra.getString("sessionIDTable", ignoreCase = true)?.also {
+                                                                sessionIDTable = it
+                                                                if (sessionIDLength.isNullOrEmpty()) sessionIDLength = "24-32"
+                                                            }
+                                                            extra.getInt("sessionIDLength", ignoreCase = true)?.also {
+                                                                sessionIDLength = it.toString()
+                                                            } ?: extra.getString("sessionIDLength", ignoreCase = true)?.also {
+                                                                sessionIDLength = it
                                                             }
                                                             extra.getObject("headers", ignoreCase = true)?.also {
                                                                 headers = mutableMapOf<String, String>()
@@ -1705,7 +1718,7 @@ fun buildV2RayConfig(
                                                 if (bean.allowInsecure) {
                                                     allowInsecure = true
                                                 }
-                                                val overrideFingerprint = DataStore.experimentalFlagsProperties.getProperty("overrideUTLSFingerprintForTLS")
+                                                val overrideFingerprint = DataStore.overrideUTLSFingerprintForTLS
                                                 if (!overrideFingerprint.isNullOrEmpty()) {
                                                     fingerprint = overrideFingerprint
                                                 } else if (bean.utlsFingerprint.isNotEmpty()) {
@@ -1732,7 +1745,7 @@ fun buildV2RayConfig(
                                                 if (bean.realityShortId.isNotEmpty()) {
                                                     shortId = bean.realityShortId
                                                 }
-                                                val overrideFingerprint = DataStore.experimentalFlagsProperties.getProperty("overrideUTLSFingerprintForREALITY")
+                                                val overrideFingerprint = DataStore.overrideUTLSFingerprintForREALITY
                                                 if (!overrideFingerprint.isNullOrEmpty()) {
                                                     fingerprint = overrideFingerprint
                                                 } else if (bean.realityFingerprint.isNotEmpty()) {
@@ -1921,7 +1934,7 @@ fun buildV2RayConfig(
                                         if (bean.allowInsecure) {
                                             allowInsecure = true
                                         }
-                                        val overrideFingerprint = DataStore.experimentalFlagsProperties.getProperty("overrideUTLSFingerprintForTLS")
+                                        val overrideFingerprint = DataStore.overrideUTLSFingerprintForTLS
                                         if (!overrideFingerprint.isNullOrEmpty()) {
                                             fingerprint = overrideFingerprint
                                         } else if (bean.utlsFingerprint.isNotEmpty()) {

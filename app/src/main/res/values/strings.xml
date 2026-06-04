@@ -359,6 +359,9 @@
     <string name="experimental_authenticated_length">Make the length of each payload segment no longer malleable. This experiment requires the server and client use the same version of v2ray-core. More breaking updates on this experiment is expected.</string>
     <string name="experimental_no_termination_signal">Do not send connection single duplex termination signal for TCP connection when transferred over VMess. This will break some applications.</string>
     <string name="utls_fingerprint">uTLS fingerprint</string>
+    <string name="override_profile_default">Profile default</string>
+    <string name="override_utls_fingerprint_tls">Override uTLS fingerprint (TLS)</string>
+    <string name="override_utls_fingerprint_reality">Override uTLS fingerprint (REALITY)</string>
     <string name="group_order">Sort</string>
     <string name="group_order_origin">By original order</string>
     <string name="group_order_by_name">Alphabetically</string>
@@ -514,6 +517,10 @@
     <string name="ech_doh_server">ECH DoH server</string>
     <string name="splithttp_mode">Mode</string>
     <string name="splithttp_extra" translatable="false">Extra</string>
+    <string name="splithttp_session_id_table">Session ID format</string>
+    <string name="splithttp_session_id_table_default">Default (UUID)</string>
+    <string name="splithttp_session_id_length">Session ID length</string>
+    <string name="splithttp_session_id_length_sum">"e.g. 24 or 24-32. Leave empty for default (24-32). Ignored when format is Default."</string>
     <string name="backup_all_profiles">Backup all profiles</string>
     <string name="browser_forwarder_hint">Please download v2ray-extra.zip from v2ray-core release and place index.html and index.js in Android/data/%s/files or import index.html and index.js as route assets.</string>
     <string name="mieru_multiplexing_level">Multiplexing level</string>

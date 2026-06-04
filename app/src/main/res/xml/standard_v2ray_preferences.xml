@@ -289,6 +289,19 @@
             app:key="serverSplithttpExtra"
             app:title="@string/splithttp_extra"
             app:useSimpleSummaryProvider="true" />
+        <io.nekohasekai.sagernet.widget.SimpleMenuPreference
+            app:defaultValue=""
+            app:entries="@array/splithttp_session_id_table_entry"
+            app:entryValues="@array/splithttp_session_id_table_value"
+            app:icon="@drawable/ic_baseline_fingerprint_24"
+            app:key="serverSplithttpSessionIDTable"
+            app:title="@string/splithttp_session_id_table"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:icon="@drawable/ic_action_settings"
+            app:key="serverSplithttpSessionIDLength"
+            app:summary="@string/splithttp_session_id_length_sum"
+            app:title="@string/splithttp_session_id_length" />
     </PreferenceCategory>
 
     <PreferenceCategory

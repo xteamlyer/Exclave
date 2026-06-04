@@ -331,6 +331,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverWsMaxEarlyData by profileCacheStore.stringToInt(Key.SERVER_WS_MAX_EARLY_DATA)
     var serverSplithttpMode by profileCacheStore.string(Key.SERVER_SPLITHTTP_MODE)
     var serverSplithttpExtra by profileCacheStore.string(Key.SERVER_SPLITHTTP_EXTRA)
+    var serverSplithttpSessionIDTable by profileCacheStore.string(Key.SERVER_SPLITHTTP_SESSION_ID_TABLE)
+    var serverSplithttpSessionIDLength by profileCacheStore.string(Key.SERVER_SPLITHTTP_SESSION_ID_LENGTH)
     var serverWsBrowserForwarding by profileCacheStore.boolean(Key.SERVER_WS_BROWSER_FORWARDING)
     var serverShBrowserForwarding by profileCacheStore.boolean(Key.SERVER_SH_BROWSER_FORWARDING)
     var serverEarlyDataHeaderName by profileCacheStore.string(Key.SERVER_EARLY_DATA_HEADER_NAME)
@@ -408,6 +410,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverSingMuxPadding by profileCacheStore.boolean(Key.SERVER_SING_MUX_PADDING)
 
     var experimentalFlags by configurationStore.string(Key.EXPERIMENTAL_FLAGS)
+    var overrideUTLSFingerprintForTLS by configurationStore.string(Key.OVERRIDE_UTLS_FP_TLS)
+    var overrideUTLSFingerprintForREALITY by configurationStore.string(Key.OVERRIDE_UTLS_FP_REALITY)
 
     var balancerType by profileCacheStore.stringToInt(Key.BALANCER_TYPE)
     var balancerGroup by profileCacheStore.stringToLong(Key.BALANCER_GROUP)

@@ -518,6 +518,22 @@
             app:key="pprofServer"
             app:title="pprof server listening address"
             app:useSimpleSummaryProvider="true" />
+        <io.nekohasekai.sagernet.widget.SimpleMenuPreference
+            app:defaultValue=""
+            app:entries="@array/override_utls_entry"
+            app:entryValues="@array/override_utls_value"
+            app:icon="@drawable/ic_baseline_fingerprint_24"
+            app:key="overrideUTLSFingerprintForTLS"
+            app:title="@string/override_utls_fingerprint_tls"
+            app:useSimpleSummaryProvider="true" />
+        <io.nekohasekai.sagernet.widget.SimpleMenuPreference
+            app:defaultValue=""
+            app:entries="@array/override_reality_fingerprint_entry"
+            app:entryValues="@array/override_reality_fingerprint_value"
+            app:icon="@drawable/ic_baseline_fingerprint_24"
+            app:key="overrideUTLSFingerprintForREALITY"
+            app:title="@string/override_utls_fingerprint_reality"
+            app:useSimpleSummaryProvider="true" />
         <EditTextPreference
             app:dialogMessage="For testing purpose only.\nBreaking changes are expected.\nNo guarantee of existence."
             app:key="experimentalFlags"
