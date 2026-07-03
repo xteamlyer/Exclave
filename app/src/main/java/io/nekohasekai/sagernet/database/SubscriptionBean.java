@@ -189,26 +189,60 @@ public class SubscriptionBean extends Serializable {
             happLocale = input.readString();
             happUserId = input.readString();
             happHwid = input.readString();
-        } else {
-            // legacy fork layout (versions 9-11 written by BetterExclave before the 0.17.46 merge)
-            if (version >= 11) {
-                importRoutingRules = input.readBoolean();
-            }
-
-            if (version >= 9) {
+        } else if (version >= 9) {
+            // Version 9-11 is ambiguous: BetterExclave (before the 0.17.46 merge) wrote the
+            // happ fields here, while stock Exclave 0.17.46+ wrote httpHeaders/agePrivateKey
+            // strings at version 9. Try the fork layout first and fall back to the stock one.
+            int legacyPosition = input.position();
+            boolean forkLayout;
+            try {
+                if (version >= 11) {
+                    importRoutingRules = input.readBoolean();
+                }
                 happSpoof = input.readBoolean();
+                if (version >= 10) {
+                    happAppVersion = input.readString();
+                    happOs = input.readString();
+                    happOsVersion = input.readString();
+                    happDeviceModel = input.readString();
+                    happLocale = input.readString();
+                    happUserId = input.readString();
+                    happHwid = input.readString();
+                }
+                forkLayout = version < 10 || looksSane(happOs) && looksSane(happLocale) && looksSane(happAppVersion);
+            } catch (Exception e) {
+                forkLayout = false;
             }
-
-            if (version >= 10) {
-                happAppVersion = input.readString();
-                happOs = input.readString();
-                happOsVersion = input.readString();
-                happDeviceModel = input.readString();
-                happLocale = input.readString();
-                happUserId = input.readString();
-                happHwid = input.readString();
+            if (!forkLayout) {
+                importRoutingRules = false;
+                happSpoof = false;
+                happAppVersion = null;
+                happOs = null;
+                happOsVersion = null;
+                happDeviceModel = null;
+                happLocale = null;
+                happUserId = null;
+                happHwid = null;
+                input.setPosition(legacyPosition);
+                httpHeaders = input.readString();
+                String s = input.readString();
+                if (type == SubscriptionType.AGE) {
+                    agePrivateKey = s;
+                } else {
+                    agePrivateKey = "";
+                }
             }
         }
+    }
+
+    private static boolean looksSane(String value) {
+        if (value == null) return true;
+        if (value.length() > 64) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c < 0x20 || c > 0x7e) return false;
+        }
+        return true;
     }
 
     public void deserializeFromShare(ByteBufferInput input) {

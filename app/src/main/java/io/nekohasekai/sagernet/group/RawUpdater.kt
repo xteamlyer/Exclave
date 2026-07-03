@@ -286,7 +286,7 @@ object RawUpdater : GroupUpdater() {
         val toAdd = ArrayList<ProxyEntity>()
         val added = mutableListOf<String>()
         val updated = mutableMapOf<String, String>()
-        val deleted = toDelete.map { it.displayName() }
+        val deleted = toDelete.map { it.displayName() }.toMutableList()
 
         var userOrder = 1L
         var changed = toDelete.size
@@ -333,7 +333,7 @@ object RawUpdater : GroupUpdater() {
                 SagerDatabase.proxyDao.deleteProxy(toDelete)
             }
 
-            if (balancerSpecs.isNotEmpty()) {
+            run {
                 val currentProxies = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
                 val currentProxyByName = currentProxies.associateBy { it.displayName() }
                 val validBalancerSpecs = balancerSpecs.mapNotNull { spec ->
@@ -346,6 +346,20 @@ object RawUpdater : GroupUpdater() {
                 val balancerEntitiesByName = activeProxies
                     .filter { it.type == ProxyEntity.TYPE_BALANCER }
                     .associateBy { balancerKey(it.displayName()) }
+                // compare against every declared spec, not just currently valid ones, so a
+                // balancer whose members transiently failed to resolve is not deleted
+                val specNames = balancerSpecs.map { balancerKey(it.name) }.toSet()
+                val balancersToDelete = balancerEntitiesByName
+                    .filterKeys { it !in specNames }
+                    .values.toList()
+                if (balancersToDelete.isNotEmpty()) {
+                    SagerDatabase.proxyDao.deleteProxy(balancersToDelete)
+                    changed += balancersToDelete.size
+                    deleted.addAll(balancersToDelete.map { it.displayName() })
+                }
+                if (validBalancerSpecs.isEmpty() && balancerEntitiesByName.isEmpty()) {
+                    return@run
+                }
                 val namesToHide = validBalancerSpecs.flatMap { (spec, _, _) ->
                     spec.allEntryBeans.map { it.displayName() }
                 }.toSet()
