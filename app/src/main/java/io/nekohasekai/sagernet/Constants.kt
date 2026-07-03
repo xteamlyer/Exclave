@@ -334,6 +334,7 @@ object Key {
     const val SUBSCRIPTION_HAPP_USER_ID = "subscriptionHappUserId"
     const val SUBSCRIPTION_HAPP_HWID = "subscriptionHappHwid"
     const val SUBSCRIPTION_HAPP_RANDOMIZE_IDS = "subscriptionHappRandomizeIds"
+    const val SUBSCRIPTION_HAPP_RANDOMIZE_DEVICE = "subscriptionHappRandomizeDevice"
     const val SUBSCRIPTION_HTTP_HEADERS = "subscriptionHTTPHeaders"
     const val SUBSCRIPTION_AGE_PRIVATE_KEY = "subscriptionAgePrivateKey"
 

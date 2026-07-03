@@ -50,4 +50,10 @@
         app:summary="@string/happ_randomize_sum"
         app:title="@string/happ_randomize" />
 
+    <Preference
+        app:icon="@drawable/ic_baseline_flip_camera_android_24"
+        app:key="subscriptionHappRandomizeDevice"
+        app:summary="@string/happ_randomize_device_sum"
+        app:title="@string/happ_randomize_device" />
+
 </PreferenceScreen>

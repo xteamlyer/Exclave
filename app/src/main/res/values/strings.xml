@@ -316,6 +316,8 @@
     <string name="happ_hwid_sum">Value of the x-hwid header. Stays the same across updates.</string>
     <string name="happ_randomize">Randomize User ID and Hardware ID</string>
     <string name="happ_randomize_sum">Replace both IDs with fresh random values</string>
+    <string name="happ_randomize_device">Randomize everything</string>
+    <string name="happ_randomize_device_sum">Randomize all the parameters — platform, OS version, model, app version, locale, user id and hardware id</string>
     <string name="subscription_settings">Subscription settings</string>
     <string name="group_type">Group type</string>
     <string name="subscription_type">Subscription type</string>

@@ -49,6 +49,11 @@ class HappOptionsActivity : ThemedActivity(R.layout.layout_config_settings) {
             preferenceManager.preferenceDataStore = DataStore.profileCacheStore
             addPreferencesFromResource(R.xml.happ_options)
 
+            val appVersion = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_APP_VERSION)!!
+            val os = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_OS)!!
+            val osVersion = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_OS_VERSION)!!
+            val deviceModel = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_DEVICE_MODEL)!!
+            val locale = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_LOCALE)!!
             val userId = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_USER_ID)!!
             val hwid = findPreference<EditTextPreference>(Key.SUBSCRIPTION_HAPP_HWID)!!
             val randomize = findPreference<Preference>(Key.SUBSCRIPTION_HAPP_RANDOMIZE_IDS)!!
@@ -57,6 +62,29 @@ class HappOptionsActivity : ThemedActivity(R.layout.layout_config_settings) {
                 val newHwid = HappSpoof.randomHwid()
                 DataStore.subscriptionHappUserId = newUid
                 DataStore.subscriptionHappHwid = newHwid
+                userId.text = newUid
+                hwid.text = newHwid
+                true
+            }
+            val randomizeEverything = findPreference<Preference>(Key.SUBSCRIPTION_HAPP_RANDOMIZE_DEVICE)!!
+            randomizeEverything.setOnPreferenceClickListener {
+                val device = HappSpoof.randomDevice()
+                val newAppVersion = HappSpoof.randomAppVersion()
+                val newLocale = HappSpoof.randomLocale()
+                val newUid = HappSpoof.randomUserId()
+                val newHwid = HappSpoof.randomHwid()
+                DataStore.subscriptionHappOs = device.os
+                DataStore.subscriptionHappOsVersion = device.osVersion
+                DataStore.subscriptionHappDeviceModel = device.model
+                DataStore.subscriptionHappAppVersion = newAppVersion
+                DataStore.subscriptionHappLocale = newLocale
+                DataStore.subscriptionHappUserId = newUid
+                DataStore.subscriptionHappHwid = newHwid
+                os.text = device.os
+                osVersion.text = device.osVersion
+                deviceModel.text = device.model
+                appVersion.text = newAppVersion
+                locale.text = newLocale
                 userId.text = newUid
                 hwid.text = newHwid
                 true
