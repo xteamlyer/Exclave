@@ -72,7 +72,9 @@ import io.nekohasekai.sagernet.widget.QRCodeDialog
 import io.nekohasekai.sagernet.widget.UndoSnackbarManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.ConcurrentHashMap
@@ -874,6 +876,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             }
 
+            // limit concurrent test instances across all workers, including balancer members
+            val memberSemaphore = Semaphore(6)
+
             repeat(6) {
                 testJobs.add(launch {
                     while (isActive) {
@@ -886,14 +891,12 @@ class ConfigurationFragment @JvmOverloads constructor(
                                 val members = profile.balancerBean?.proxies
                                     ?.let { SagerDatabase.proxyDao.getEntities(it) }
                                     .orEmpty()
-                                var bestPing = Int.MAX_VALUE
-                                for (member in members) {
-                                    val (status, ping) = runTest(member)
-                                    if (status == 1 && ping in 1 until bestPing) {
-                                        bestPing = ping
-                                    }
-                                }
-                                if (bestPing != Int.MAX_VALUE) {
+                                val bestPing = coroutineScope {
+                                    members.map { member ->
+                                        async { memberSemaphore.withPermit { runTest(member) } }
+                                    }.awaitAll()
+                                }.filter { it.first == 1 && it.second > 0 }.minOfOrNull { it.second }
+                                if (bestPing != null) {
                                     profile.status = 1
                                     profile.ping = bestPing
                                 } else {
@@ -932,6 +935,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
 
             testJobs.joinAll()
+
             test.close()
             onMainDispatcher {
                 test.binding.progressCircular.isGone = true
@@ -1349,23 +1353,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             }
 
-            override fun onBindViewHolder(
-                holder: ConfigurationHolder,
-                position: Int,
-                payloads: MutableList<Any>,
-            ) {
-                if (payloads.contains(selectionPayload)) {
-                    try {
-                        getItemAt(position)?.let {
-                            holder.updateSelection(it)
-                        }
-                    } catch (ignored: NullPointerException) { // when group deleted
-                    }
-                    return
-                }
-                super.onBindViewHolder(holder, position, payloads)
-            }
-
             override fun getItemCount(): Int {
                 return configurationIdList.size
             }
@@ -1388,14 +1375,15 @@ class ConfigurationFragment @JvmOverloads constructor(
                 position: Int,
                 payloads: MutableList<Any>
             ) {
-                if (payloads.contains("PAYLOAD_SELECTION_CHANGE")) {
-                    val entityId = configurationIdList[position]
-
-                    val isSelected = (entityId == activeSelectionId)
-                    val isStarted = isSelected && SagerNet.started && DataStore.startedProfile == entityId
-
-                    holder.selectedView.visibility = if (isSelected) View.VISIBLE else View.INVISIBLE
-                    holder.deleteButton.isEnabled = !isStarted
+                if (payloads.contains("PAYLOAD_SELECTION_CHANGE") || payloads.contains(selectionPayload)) {
+                    // render through the same path as a full bind so partial updates
+                    // can never disagree with what holder.bind() would show
+                    try {
+                        getItemAt(position)?.let {
+                            holder.updateSelection(it)
+                        }
+                    } catch (ignored: NullPointerException) { // when group deleted
+                    }
                 } else {
                     super.onBindViewHolder(holder, position, payloads)
                 }
@@ -1501,13 +1489,6 @@ class ConfigurationFragment @JvmOverloads constructor(
                     } else {
                         notifyItemChanged(index)
                     }
-                }
-            }
-
-            fun notifySelectionChanged(profileId: Long) {
-                val index = configurationIdList.indexOf(profileId)
-                if (index >= 0) {
-                    notifyItemChanged(index, selectionPayload)
                 }
             }
 
