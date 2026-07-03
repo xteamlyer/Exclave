@@ -107,6 +107,44 @@ object SagerDatabase_Migration_11_12 : Migration(11, 12) {
     }
 }
 
+// The pre-merge BetterExclave fork and upstream Exclave both shipped database version 36 with
+// *different* schemas: the fork kept `shadowtlsBean`/`reverse`/`redirect` and added `hidden`,
+// while upstream dropped those three columns and never had `hidden`. Because both are stamped
+// version 36, Room runs no migration on an existing fork install and its identity-hash check
+// fails on open (crash on startup). This migration normalizes every possible physical version-36
+// layout to the canonical schema so the check passes.
+object SagerDatabase_Migration_36_37 : Migration(36, 37) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // proxy_entities: ensure `hidden` exists (upstream-derived installs lack it), then
+        // rebuild to drop any leftover columns such as `shadowtlsBean`.
+        if (!hasColumn(database, "proxy_entities", "hidden")) {
+            database.execSQL("""ALTER TABLE `proxy_entities` ADD COLUMN `hidden` INTEGER NOT NULL DEFAULT 0""")
+        }
+        database.execSQL("""CREATE TABLE IF NOT EXISTS `proxy_entities_MERGE_TABLE` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `groupId` INTEGER NOT NULL, `type` INTEGER NOT NULL, `userOrder` INTEGER NOT NULL, `tx` INTEGER NOT NULL, `rx` INTEGER NOT NULL, `status` INTEGER NOT NULL, `ping` INTEGER NOT NULL, `uuid` TEXT NOT NULL, `error` TEXT, `socksBean` BLOB, `httpBean` BLOB, `ssBean` BLOB, `ssrBean` BLOB, `vmessBean` BLOB, `vlessBean` BLOB, `trojanBean` BLOB, `naiveBean` BLOB, `hysteria2Bean` BLOB, `mieruBean` BLOB, `tuic5Bean` BLOB, `sshBean` BLOB, `wgBean` BLOB, `juicityBean` BLOB, `http3Bean` BLOB, `anytlsBean` BLOB, `shadowquicBean` BLOB, `trustTunnelBean` BLOB, `configBean` BLOB, `chainBean` BLOB, `balancerBean` BLOB, `hidden` INTEGER NOT NULL DEFAULT 0)""")
+        database.execSQL("""INSERT INTO `proxy_entities_MERGE_TABLE` (`id`,`groupId`,`type`,`userOrder`,`tx`,`rx`,`status`,`ping`,`uuid`,`error`,`socksBean`,`httpBean`,`ssBean`,`ssrBean`,`vmessBean`,`vlessBean`,`trojanBean`,`naiveBean`,`hysteria2Bean`,`mieruBean`,`tuic5Bean`,`sshBean`,`wgBean`,`juicityBean`,`http3Bean`,`anytlsBean`,`shadowquicBean`,`trustTunnelBean`,`configBean`,`chainBean`,`balancerBean`,`hidden`) SELECT `id`,`groupId`,`type`,`userOrder`,`tx`,`rx`,`status`,`ping`,`uuid`,`error`,`socksBean`,`httpBean`,`ssBean`,`ssrBean`,`vmessBean`,`vlessBean`,`trojanBean`,`naiveBean`,`hysteria2Bean`,`mieruBean`,`tuic5Bean`,`sshBean`,`wgBean`,`juicityBean`,`http3Bean`,`anytlsBean`,`shadowquicBean`,`trustTunnelBean`,`configBean`,`chainBean`,`balancerBean`,`hidden` FROM `proxy_entities`""")
+        database.execSQL("""DROP TABLE `proxy_entities`""")
+        database.execSQL("""ALTER TABLE `proxy_entities_MERGE_TABLE` RENAME TO `proxy_entities`""")
+        database.execSQL("""CREATE INDEX IF NOT EXISTS `groupId` ON `proxy_entities` (`groupId`)""")
+
+        // rules: rebuild to drop any leftover `reverse`/`redirect` columns.
+        database.execSQL("""CREATE TABLE IF NOT EXISTS `rules_MERGE_TABLE` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `userOrder` INTEGER NOT NULL, `enabled` INTEGER NOT NULL, `domains` TEXT NOT NULL, `ip` TEXT NOT NULL, `port` TEXT NOT NULL, `sourcePort` TEXT NOT NULL, `network` TEXT NOT NULL, `source` TEXT NOT NULL, `protocol` TEXT NOT NULL, `attrs` TEXT NOT NULL, `outbound` INTEGER NOT NULL, `packages` TEXT NOT NULL, `ssid` TEXT NOT NULL DEFAULT '', `networkType` TEXT NOT NULL DEFAULT '', `customPackageNames` TEXT NOT NULL DEFAULT '')""")
+        database.execSQL("""INSERT INTO `rules_MERGE_TABLE` (`id`,`name`,`userOrder`,`enabled`,`domains`,`ip`,`port`,`sourcePort`,`network`,`source`,`protocol`,`attrs`,`outbound`,`packages`,`ssid`,`networkType`,`customPackageNames`) SELECT `id`,`name`,`userOrder`,`enabled`,`domains`,`ip`,`port`,`sourcePort`,`network`,`source`,`protocol`,`attrs`,`outbound`,`packages`,`ssid`,`networkType`,`customPackageNames` FROM `rules`""")
+        database.execSQL("""DROP TABLE `rules`""")
+        database.execSQL("""ALTER TABLE `rules_MERGE_TABLE` RENAME TO `rules`""")
+    }
+
+    private fun hasColumn(database: SupportSQLiteDatabase, table: String, column: String): Boolean {
+        database.query("PRAGMA table_info(`$table`)").use { cursor ->
+            val nameIndex = cursor.getColumnIndex("name")
+            if (nameIndex < 0) return false
+            while (cursor.moveToNext()) {
+                if (cursor.getString(nameIndex) == column) return true
+            }
+        }
+        return false
+    }
+}
+
 @DeleteTable(
     tableName = "KeyValuePair"
 )
