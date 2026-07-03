@@ -198,6 +198,7 @@ object AgeUpdater : GroupUpdater() {
                     existsBean != bean -> {
                         changed++
                         entity.putBean(bean)
+                        entity.userOrder = userOrder
                         toUpdate.add(entity)
                         updated[entity.displayName()] = name
                     }
