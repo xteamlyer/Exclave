@@ -19,9 +19,13 @@
 
 package io.nekohasekai.sagernet.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
@@ -124,6 +128,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 "ko" -> getString(R.string.language_ko_display_name)
                 "nb-NO" -> getString(R.string.language_nb_NO_display_name)
                 "ru" -> getString(R.string.language_ru_display_name)
+                "ta" -> getString(R.string.language_ta_display_name)
                 "tr" -> getString(R.string.language_tr_display_name)
                 "zh-Hans-CN" -> getString(R.string.language_zh_Hans_CN_display_name)
                 "zh-Hant-TW" -> getString(R.string.language_zh_Hant_TW_display_name)
@@ -178,9 +183,9 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                         && httpPassword.isVisible && httpPassword.text.isNullOrEmpty()
             }
             if (SagerNet.started) {
-                SagerNet.stopService()
-                runOnMainDispatcher {
-                    delay(300)
+                runOnDefaultDispatcher {
+                    SagerNet.stopService()
+                    delay(300) // FIXME: Why this is needed?
                     SagerNet.startService()
                 }
             }
@@ -188,11 +193,27 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
         tunImplementation.isEnabled = serviceMode.value == MODE_VPN
         tunImplementation.setOnPreferenceChangeListener { _, newValue ->
-            enablePcap.isEnabled = serviceMode.value == MODE_VPN && (newValue as String).toInt() == TunImplementation.GVISOR
+            if ((newValue as String).toInt() == TunImplementation.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN && app.checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {
+                MaterialAlertDialogBuilder(requireContext()).apply {
+                    setTitle(R.string.error_title)
+                    setMessage(R.string.nearby_devices_permission_notice)
+                    setNeutralButton(R.string.open_settings) { _, _ ->
+                        try {
+                            startActivity(Intent().apply {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", app.packageName, null)
+                            })
+                        } catch (e: Exception) {
+                            snackbar(e.readableMessage).show()
+                        }
+                    }
+                    setPositiveButton(android.R.string.ok, null)
+                }.show()
+            }
+            enablePcap.isEnabled = serviceMode.value == MODE_VPN && newValue.toInt() == TunImplementation.GVISOR
             if (SagerNet.started) {
-                SagerNet.stopService()
-                runOnMainDispatcher {
-                    SagerNet.startService()
+                runOnDefaultDispatcher {
+                    SagerNet.reloadService()
                 }
             }
             true
@@ -204,7 +225,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         enableVPNInterfaceIPv6Address.onPreferenceChangeListener = reloadListener
         allowAppsBypassVpn.isEnabled = serviceMode.value == MODE_VPN
         allowAppsBypassVpn.onPreferenceChangeListener = reloadListener
-        if (Build.VERSION.SDK_INT < 28) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             meteredNetwork.remove()
         }
         meteredNetwork.isEnabled = serviceMode.value == MODE_VPN
@@ -382,7 +403,29 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreference>(Key.ALLOW_ACCESS)!!.onPreferenceChangeListener = reloadListener
 
         val allowAccess = findPreference<SwitchPreference>(Key.ALLOW_ACCESS)!!
-        allowAccess.onPreferenceChangeListener = reloadListener
+        allowAccess.setOnPreferenceChangeListener { _, newValue ->
+            newValue as Boolean
+            if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN && app.checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {
+                MaterialAlertDialogBuilder(requireContext()).apply {
+                    setTitle(R.string.error_title)
+                    setMessage(R.string.nearby_devices_permission_notice)
+                    setNeutralButton(R.string.open_settings) { _, _ ->
+                        try {
+                            startActivity(Intent().apply {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", app.packageName, null)
+                            })
+                        } catch (e: Exception) {
+                            snackbar(e.readableMessage).show()
+                        }
+                    }
+                    setPositiveButton(android.R.string.ok, null)
+                }.show()
+            }
+            needReload()
+            true
+        }
+
         val requireSocks = findPreference<SwitchPreference>(Key.REQUIRE_SOCKS)!!
         val requireTransproxy = findPreference<SwitchPreference>(Key.REQUIRE_TRANSPROXY)!!
         val requireDns = findPreference<SwitchPreference>(Key.REQUIRE_DNS_INBOUND)!!

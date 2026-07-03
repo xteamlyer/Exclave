@@ -24,6 +24,7 @@ package io.nekohasekai.sagernet.database
 import android.content.Intent
 import android.os.Binder
 import android.os.Build
+import android.os.LocaleList
 import androidx.preference.PreferenceDataStore
 import io.nekohasekai.sagernet.*
 import io.nekohasekai.sagernet.SagerNet.Companion.application
@@ -147,7 +148,12 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     var remoteDns by configurationStore.stringNotBlack(Key.REMOTE_DNS) { "tcp://1.1.1.1" }
     var directDns by configurationStore.stringNotBlack(Key.DIRECT_DNS) {
-        when (Locale.getDefault().country) {
+        val locale = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> SagerNet.locale.systemLocales[0]!!
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> LocaleList.getDefault().get(0)
+            else -> Locale.getDefault()
+        }
+        when (locale.country) {
             "CN" -> "tcp://223.5.5.5"
             "IR" -> "tcp://178.22.122.100"
             "RU" -> "tcp://77.88.8.8"
@@ -280,8 +286,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var profileTrafficStatistics by configurationStore.boolean(Key.PROFILE_TRAFFIC_STATISTICS) { true }
 
     // protocol
-
-    var shadowsocks2022Implementation by configurationStore.stringToInt(Key.SHADOWSOCKS_2022_IMPLEMENTATION)
     var providerRootCA by configurationStore.stringToInt(Key.PROVIDER_ROOT_CA) { 1 }
     var interruptReusedConnections by configurationStore.boolean(Key.INTERRUPT_REUSED_CONNECTIONS) { true }
     var reconnectOnNetworkChange by configurationStore.boolean(Key.RECONNECT_ON_NETWORK_CHANGE)
@@ -385,7 +389,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverDisableSNI by profileCacheStore.boolean(Key.SERVER_DISABLE_SNI)
     var serverReduceRTT by profileCacheStore.boolean(Key.SERVER_REDUCE_RTT)
 
-    var serverShadowTLSProtocolVersion by profileCacheStore.stringToInt(Key.SERVER_SHADOWTLS_PROTOCOL_VERSION) { 2 }
     var serverMieruMuxLevel by profileCacheStore.stringToInt(Key.SERVER_MIERU_MUX_LEVEL)
     var serverMieruHandshakeMode by profileCacheStore.stringToInt(Key.SERVER_MIERU_HANDSHAKE_MODE)
     var serverMieruTrafficPattern by profileCacheStore.string(Key.SERVER_MIERU_TRAFFIC_PATTERN)
@@ -435,8 +438,6 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var routeAttrs by profileCacheStore.string(Key.ROUTE_ATTRS)
     var routeOutbound by profileCacheStore.stringToInt(Key.ROUTE_OUTBOUND)
     var routeOutboundRule by profileCacheStore.long(Key.ROUTE_OUTBOUND_RULE)
-    var routeReverse by profileCacheStore.boolean(Key.ROUTE_REVERSE)
-    var routeRedirect by profileCacheStore.string(Key.ROUTE_REDIRECT)
     var routePackages by profileCacheStore.string(Key.ROUTE_PACKAGES)
     var routeCustomPackageNameOrUid by profileCacheStore.string(Key.ROUTE_CUSTOM_PACKAGE_NAME_OR_UID)
     var routeNetworkType by profileCacheStore.stringSet(Key.ROUTE_NETWORK_TYPE)
@@ -474,6 +475,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var subscriptionHappLocale by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_LOCALE)
     var subscriptionHappUserId by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_USER_ID)
     var subscriptionHappHwid by profileCacheStore.string(Key.SUBSCRIPTION_HAPP_HWID)
+    var subscriptionHTTPHeaders by profileCacheStore.string(Key.SUBSCRIPTION_HTTP_HEADERS)
+    var subscriptionAgePrivateKey by profileCacheStore.string(Key.SUBSCRIPTION_AGE_PRIVATE_KEY)
 
     var editingAssetName by profileCacheStore.string(Key.EDITING_ASSET_NAME)
     var assetName by profileCacheStore.string(Key.ASSET_NAME)
@@ -485,6 +488,10 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     var rulesFirstCreate by configurationStore.boolean(Key.RULES_FIRST_CREATE)
     var doNotShowRuleExportWarning by configurationStore.boolean(Key.DO_NOT_SHOW_RULE_EXPORT_WARNING)
+
+    var getInstalledPackagesInited by configurationStore.boolean("getInstalledPackagesInited")
+    var postNotificationsPermissionRequested by configurationStore.boolean("postNotificationsPermissionRequested")
+    var accessLocalNetworkPermissionRequested by configurationStore.boolean("accessLocalNetworkPermissionRequested")
 
     var experimentalFlagsProperties = Properties().apply {
         load(BufferedReader(StringReader(experimentalFlags)))

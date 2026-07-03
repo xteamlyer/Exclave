@@ -118,6 +118,13 @@ object RawUpdater : GroupUpdater() {
                 } else {
                     setUserAgent(USER_AGENT)
                 }
+                if (subscription.httpHeaders.isNotEmpty()) {
+                    for (header in subscription.httpHeaders.replace("\r\n", "\n").split("\n")) {
+                        if (header.isEmpty()) continue
+                        if (!header.contains(":")) error("invalid http header")
+                        setHeader(header.substringBefore(":"), header.substringAfter(":").trimStart())
+                    }
+                }
             }.execute()
 
             val body = if (response.getHeader("Content-Encoding").equals("gzip", ignoreCase = true)) {
@@ -679,7 +686,7 @@ object RawUpdater : GroupUpdater() {
     }
 }
 
-private class YAMLConstructor(
+class YAMLConstructor(
     options: LoaderOptions,
 ) : Constructor(options) {
     override fun constructObject(node: Node): Any? {

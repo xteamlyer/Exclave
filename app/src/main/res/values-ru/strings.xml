@@ -152,7 +152,7 @@
     <string name="always_show_address">Всегда показывать адрес</string>
     <string name="unavailable">Недоступно</string>
     <string name="available">%d мс</string>
-    <string name="probe_interval">Интервал наблюдения балансировщика (с)</string>
+    <string name="probe_interval">Интервал между проверками (сек.)</string>
     <string name="random">Случайно</string>
     <string name="list">Список</string>
     <string name="auto">Авто</string>
@@ -259,8 +259,6 @@
     <string name="route_rules_provider">Поставщик ресурсов правил</string>
     <string name="route_assets">Ресурсы</string>
     <string name="route_manage_assets">Управление ресурсами</string>
-    <string name="route_reverse_redirect">Обратное перенаправление</string>
-    <string name="route_reverse">Обратный прокси</string>
     <string name="route_reset">Сброс</string>
     <string name="route_bypass_ip">IP правило для %s</string>
     <string name="route_bypass_domain">Правило домена для %s</string>
@@ -446,7 +444,6 @@
     <string name="utls_fingerprint">uTLS-отпечаток</string>
     <string name="route_need_location_enabled">Правило маршрутизации `%s` требует доступа к вашему **Wi-Fi SSID**, но для этого требуется **включенное местоположение**</string>
     <string name="route_need_fine_location">Правило маршрутизации `%s` требует доступа к вашему **Wi-Fi SSID**, но для этого требуется **разрешение на точное определение местоположения**</string>
-    <string name="shadowsocks_2022_implementation">Реализация Shadowsocks 2022</string>
     <string name="bootstrap_dns">Загрузочный DNS</string>
     <string name="use_local_dns_as_bootstrap_dns">Использовать системный DNS как DNS начальной загрузки</string>
     <string name="brook_fragment">Фрагмент</string>
@@ -589,4 +586,5 @@
     <string name="hysteria2_gecko_max_packet_size">Максимальный размер пакета</string>
     <string name="hysteria2_gecko_min_packet_size">Минимальный размер пакета</string>
     <string name="enable_hysteria2_omit_max_datagram_frame_size">Включить Hysteria 2 OmitMaxDatagramFrameSize</string>
+    <string name="nearby_devices_permission_notice">Для работы требуется разрешение «Близлежащие устройства», но оно не предоставлено.</string>
 </resources>

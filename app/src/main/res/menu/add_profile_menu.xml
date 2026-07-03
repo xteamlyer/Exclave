@@ -87,9 +87,6 @@
                                 android:id="@+id/action_new_wg"
                                 android:title="@string/action_wireguard" />
                             <item
-                                android:id="@+id/action_new_shadowtls"
-                                android:title="@string/action_shadowtls" />
-                            <item
                                 android:id="@+id/action_new_shadowquic"
                                 android:title="@string/action_shadowquic" />
                             <item
@@ -101,6 +98,7 @@
             </item>
             <item
                 android:id="@+id/action_import_backup"
+                android:visible="false"
                 android:title="@string/backup">
                 <menu>
                     <item

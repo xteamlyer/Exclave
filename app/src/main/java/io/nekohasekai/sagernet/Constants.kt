@@ -104,7 +104,6 @@ object Key {
     const val ALWAYS_SHOW_ADDRESS = "alwaysShowAddress"
     const val SHOW_GROUP_NAME = "showGroupName"
 
-    const val SHADOWSOCKS_2022_IMPLEMENTATION = "shadowsocks2022Implementation"
     const val PROVIDER_ROOT_CA = "providerRootCA"
 
     const val INTERRUPT_REUSED_CONNECTIONS = "interruptReusedConnections0"
@@ -236,7 +235,6 @@ object Key {
     const val SERVER_DISABLE_SNI = "serverDisableSNI"
     const val SERVER_REDUCE_RTT= "serverReduceRTT"
 
-    const val SERVER_SHADOWTLS_PROTOCOL_VERSION = "serverShadowTLSProtocolVersion"
     const val SERVER_MIERU_MUX_LEVEL = "serverMieruMuxLevel"
     const val SERVER_MIERU_HANDSHAKE_MODE = "serverMieruHandshakeMode"
     const val SERVER_MIERU_TRAFFIC_PATTERN = "serverMieruTrafficPattern"
@@ -297,8 +295,6 @@ object Key {
     const val ROUTE_ATTRS = "routeAttrs"
     const val ROUTE_OUTBOUND = "routeOutbound"
     const val ROUTE_OUTBOUND_RULE = "routeOutboundRule"
-    const val ROUTE_REVERSE = "routeReverse"
-    const val ROUTE_REDIRECT = "routeRedirect"
     const val ROUTE_PACKAGES = "routePackages"
     const val ROUTE_CUSTOM_PACKAGE_NAME_OR_UID = "routeCustomPackageNameOrUid"
     const val ROUTE_NETWORK_TYPE = "routeNetworkType"
@@ -338,6 +334,8 @@ object Key {
     const val SUBSCRIPTION_HAPP_USER_ID = "subscriptionHappUserId"
     const val SUBSCRIPTION_HAPP_HWID = "subscriptionHappHwid"
     const val SUBSCRIPTION_HAPP_RANDOMIZE_IDS = "subscriptionHappRandomizeIds"
+    const val SUBSCRIPTION_HTTP_HEADERS = "subscriptionHTTPHeaders"
+    const val SUBSCRIPTION_AGE_PRIVATE_KEY = "subscriptionAgePrivateKey"
 
     const val EDITING_ASSET_NAME = "editingAssetName"
     const val ASSET_NAME = "assetName"
@@ -357,11 +355,6 @@ object TunImplementation {
     const val SYSTEM = 1
 }
 
-object Shadowsocks2022Implementation {
-    const val SAGERNET_SING_SHADOWSOCKS2 = 0
-    const val V2FLY_V2RAY_CORE = 1
-}
-
 object RootCAProvider {
     const val MOZILLA = 0
     const val SYSTEM = 1
@@ -378,6 +371,7 @@ object SubscriptionType {
     const val RAW = 0
     const val OOCv1 = 1 // removed
     const val SIP008 = 2
+    const val AGE = 3
 }
 
 object ExtraType {

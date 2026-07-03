@@ -413,7 +413,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             ).show()
 
             val group = SagerDatabase.groupDao.getById(targetId)!!
-            GroupManager.updateGroup(group)
+            GroupManager.updateGroup(group, reconfigureUpdater = false)
         }
 
     }
@@ -515,9 +515,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
             R.id.action_new_wg -> {
                 startActivity(Intent(requireActivity(), WireGuardSettingsActivity::class.java))
-            }
-            R.id.action_new_shadowtls -> {
-                startActivity(Intent(requireActivity(), ShadowTLSSettingsActivity::class.java))
             }
             R.id.action_new_juicity -> {
                 startActivity(Intent(requireActivity(), JuicitySettingsActivity::class.java))
@@ -1091,6 +1088,7 @@ class ConfigurationFragment @JvmOverloads constructor(
         lateinit var proxyGroup: ProxyGroup
         var selected = false
         var scrolled = false
+        val showBackup = DataStore.experimentalFlagsProperties.getBooleanProperty("enableProfileBackup")
 
         override fun onCreateView(
             inflater: LayoutInflater,
@@ -1161,6 +1159,11 @@ class ConfigurationFragment @JvmOverloads constructor(
                     ?.toolbar?.menu?.findItem(R.id.action_new_shadowquic)?.isVisible  = false
             }
 
+            if (showBackup) {
+                (parentFragment as? ToolbarFragment)
+                    ?.toolbar?.menu?.findItem(R.id.action_import_backup)?.isVisible = true
+            }
+
             if (::configurationListView.isInitialized) {
                 configurationListView.requestFocus()
             }
@@ -1190,7 +1193,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                 if (proxyGroup.order == order) return
                 runOnDefaultDispatcher {
                     proxyGroup.order = order
-                    GroupManager.updateGroup(proxyGroup)
+                    GroupManager.updateGroup(proxyGroup, reconfigureUpdater = false)
                 }
             }
 
@@ -1366,6 +1369,37 @@ class ConfigurationFragment @JvmOverloads constructor(
             override fun getItemCount(): Int {
                 return configurationIdList.size
             }
+            var activeSelectionId: Long = -1
+
+            fun refreshSelection() {
+                val newId = DataStore.selectedProxy
+                if (activeSelectionId == newId) return
+                val oldId = activeSelectionId
+                activeSelectionId = newId
+
+                listOf(oldId, newId).forEach { id ->
+                    val index = configurationIdList.indexOf(id)
+                    if (index != -1) notifyItemChanged(index, "PAYLOAD_SELECTION_CHANGE")
+                }
+            }
+
+            override fun onBindViewHolder(
+                holder: ConfigurationHolder,
+                position: Int,
+                payloads: MutableList<Any>
+            ) {
+                if (payloads.contains("PAYLOAD_SELECTION_CHANGE")) {
+                    val entityId = configurationIdList[position]
+
+                    val isSelected = (entityId == activeSelectionId)
+                    val isStarted = isSelected && SagerNet.started && DataStore.startedProfile == entityId
+
+                    holder.selectedView.visibility = if (isSelected) View.VISIBLE else View.INVISIBLE
+                    holder.deleteButton.isEnabled = !isStarted
+                } else {
+                    super.onBindViewHolder(holder, position, payloads)
+                }
+            }
 
             private val updated = HashSet<ProxyEntity>()
 
@@ -1537,6 +1571,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     return
                 }
 
+                activeSelectionId = selectedItem?.id ?: DataStore.selectedProxy
 
                 var newProfiles = SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
                 newProfiles = newProfiles.filter { it.id !in pendingDeletedIds && !it.hidden }
@@ -1616,19 +1651,16 @@ class ConfigurationFragment @JvmOverloads constructor(
                     view.setOnClickListener {
                         runOnDefaultDispatcher {
                             var update: Boolean
-                            var lastSelected: Long
                             profileAccess.withLock {
                                 update = DataStore.selectedProxy != proxyEntity.id
-                                lastSelected = DataStore.selectedProxy
                                 DataStore.selectedProxy = proxyEntity.id
-                                onMainDispatcher {
-                                    adapter.notifySelectionChanged(lastSelected)
-                                    adapter.notifySelectionChanged(proxyEntity.id)
-                                }
                             }
 
                             if (update) {
-                                ProfileManager.postUpdate(lastSelected)
+                                onMainDispatcher {
+                                    adapter.refreshSelection()
+                                }
+
                                 if (pa.state.canStop && reloadAccess.tryLock()) {
                                     SagerNet.reloadService()
                                     reloadAccess.unlock()
@@ -1742,13 +1774,15 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 }
 
-                deleteButton.setOnClickListener {
-                    adapter.let {
-                        val index = it.configurationIdList.indexOf(proxyEntity.id)
-                        if (index >= 0) {
-                            it.remove(index)
-                            it.pendingDeletedIds.add(proxyEntity.id)
-                            undoManager.remove(index to proxyEntity)
+                deleteButton.setOnClickListener { view ->
+                    view.post {
+                        adapter.let {
+                            val index = it.configurationIdList.indexOf(proxyEntity.id)
+                            if (index >= 0) {
+                                it.remove(index)
+                                it.pendingDeletedIds.add(proxyEntity.id)
+                                undoManager.remove(index to proxyEntity)
+                            }
                         }
                     }
                 }
@@ -1768,8 +1802,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                             popup.menu.removeItem(R.id.action_qr)
                             popup.menu.removeItem(R.id.action_clipboard)
                         }
-                        if (!proxyEntity.canExportBackup()) {
-                            popup.menu.removeItem(R.id.action_export_backup)
+                        if (showBackup && proxyEntity.canExportBackup()) {
+                            popup.menu.findItem(R.id.action_export_backup).isVisible = true
                         }
 
                         popup.setOnMenuItemClickListener(this@ConfigurationHolder)

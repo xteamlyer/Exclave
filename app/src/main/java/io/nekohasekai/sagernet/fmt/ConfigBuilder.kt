@@ -32,7 +32,6 @@ import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.LogLevel
 import io.nekohasekai.sagernet.RouteMode
 import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.Shadowsocks2022Implementation
 import io.nekohasekai.sagernet.TLS_FRAGMENTATION_METHOD
 import io.nekohasekai.sagernet.TunImplementation
 import io.nekohasekai.sagernet.bg.VpnService
@@ -51,7 +50,6 @@ import io.nekohasekai.sagernet.fmt.juicity.JuicityBean
 import io.nekohasekai.sagernet.fmt.mieru.MieruBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
-import io.nekohasekai.sagernet.fmt.shadowtls.ShadowTLSBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
@@ -86,12 +84,10 @@ import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.OutboundObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.PolicyObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.QuicObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.RealityObject
-import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.ReverseObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.RoutingObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.RoutingObject.BalancerObject.StrategyObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SSHOutboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.ShadowsocksOutboundConfigurationObject
-import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.Shadowsocks_2022OutboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SocksInboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SocksOutboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SplitHTTPObject
@@ -746,23 +742,16 @@ fun buildV2RayConfig(
                                                 })
                                         })
                                 } else if (bean is ShadowsocksBean) {
-                                    if (bean.method.startsWith("2022-blake3-") && DataStore.shadowsocks2022Implementation == Shadowsocks2022Implementation.V2FLY_V2RAY_CORE) {
-                                        protocol = "shadowsocks2022"
-                                        settings = LazyOutboundConfigurationObject(this,
-                                            Shadowsocks_2022OutboundConfigurationObject().apply {
+                                    protocol = "shadowsocks"
+                                    settings = LazyOutboundConfigurationObject(this,
+                                        ShadowsocksOutboundConfigurationObject().apply {
+                                            servers = listOf(ShadowsocksOutboundConfigurationObject.ServerObject().apply {
                                                 address = bean.serverAddress
                                                 port = bean.serverPort
+                                                password = bean.password
                                                 method = bean.method
-                                                val keys = bean.password.split(":")
-                                                if (keys.size == 1) {
-                                                    psk = keys[0]
-                                                }
-                                                if (keys.size > 1) {
-                                                    ipsk = mutableListOf()
-                                                    for (i in 0..(keys.size - 2)) {
-                                                        ipsk.add(keys[i])
-                                                    }
-                                                    psk = keys[keys.size - 1]
+                                                if (!bean.method.startsWith("2022-blake3-") && bean.experimentReducedIvHeadEntropy) {
+                                                    experimentReducedIvHeadEntropy = bean.experimentReducedIvHeadEntropy
                                                 }
                                                 if (bean.plugin.isNotEmpty()) {
                                                     val pluginConfiguration = PluginConfiguration(bean.plugin)
@@ -805,65 +794,9 @@ fun buildV2RayConfig(
                                                 if (bean.singUoT && DataStore.experimentalFlagsProperties.getBooleanProperty( "singuot")) {
                                                     uot = bean.singUoT
                                                 }
-                                            }
-                                        )
-                                    } else {
-                                        protocol = "shadowsocks"
-                                        settings = LazyOutboundConfigurationObject(this,
-                                            ShadowsocksOutboundConfigurationObject().apply {
-                                                servers = listOf(ShadowsocksOutboundConfigurationObject.ServerObject().apply {
-                                                    address = bean.serverAddress
-                                                    port = bean.serverPort
-                                                    password = bean.password
-                                                        method = bean.method
-                                                    if (!bean.method.startsWith("2022-blake3-") && bean.experimentReducedIvHeadEntropy) {
-                                                        experimentReducedIvHeadEntropy = bean.experimentReducedIvHeadEntropy
-                                                    }
-                                                    if (bean.plugin.isNotEmpty()) {
-                                                        val pluginConfiguration = PluginConfiguration(bean.plugin)
-                                                        if (pluginConfiguration.selected.isNotEmpty()) {
-                                                            plugin = pluginConfiguration.selected
-                                                            pluginOpts = pluginConfiguration.getOptions().toString()
-                                                            if (!forExport
-                                                                && !(plugin == "v2ray-plugin" && DataStore.experimentalFlagsProperties.getBooleanProperty("useInternalV2RayPlugin"))
-                                                                && !(plugin == "obfs-local" && DataStore.experimentalFlagsProperties.getBooleanProperty("useInternalObfsLocal"))
-                                                            ) {
-                                                                try {
-                                                                    PluginManager.init(pluginConfiguration)?.let { (path, opts, isV2) ->
-                                                                        plugin = path
-                                                                        val shouldProtect = if (forTest) {
-                                                                            DataStore.serviceMode == Key.MODE_VPN && DataStore.tunImplementation == TunImplementation.SYSTEM && DataStore.startedProfile > 0 && SagerNet.started
-                                                                        } else {
-                                                                            DataStore.serviceMode == Key.MODE_VPN && DataStore.tunImplementation == TunImplementation.SYSTEM
-                                                                        }
-                                                                        if (shouldProtect) {
-                                                                            pluginWorkingDir = SagerNet.deviceStorage.noBackupFilesDir.toString()
-                                                                            if (isV2) {
-                                                                                opts["__android_vpn"] = ""
-                                                                            } else {
-                                                                                pluginArgs = listOf("-V")
-                                                                            }
-                                                                        }
-                                                                        pluginOpts = opts.toString()
-                                                                    }
-                                                                } catch (e: PluginManager.PluginNotFoundException) {
-                                                                    if (e.plugin in arrayOf("v2ray-plugin", "obfs-local")) {
-                                                                        plugin = e.plugin
-                                                                        pluginOpts = pluginConfiguration.getOptions().toString()
-                                                                    } else {
-                                                                        throw e
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    if (bean.singUoT && DataStore.experimentalFlagsProperties.getBooleanProperty( "singuot")) {
-                                                        uot = bean.singUoT
-                                                    }
-                                                })
-                                            }
-                                        )
-                                    }
+                                            })
+                                        }
+                                    )
                                 } else if (bean is SOCKSBean) {
                                     protocol = "socks"
                                     settings = LazyOutboundConfigurationObject(this,
@@ -1217,11 +1150,17 @@ fun buildV2RayConfig(
                                                             extra.getString("uplinkHTTPMethod", ignoreCase = true)?.also {
                                                                 uplinkHTTPMethod = it
                                                             }
-                                                            extra.getString("sessionPlacement", ignoreCase = true)?.also {
-                                                                sessionPlacement = it
+                                                            extra.getString("sessionIDPlacement", ignoreCase = true)?.also {
+                                                                sessionIDPlacement = it
                                                             }
-                                                            extra.getString("sessionKey", ignoreCase = true)?.also {
-                                                                sessionKey = it
+                                                            extra.getString("sessionIDKey", ignoreCase = true)?.also {
+                                                                sessionIDKey = it
+                                                            }
+                                                            extra.getString("sessionIDTable", ignoreCase = true)?.also {
+                                                                sessionIDTable = it
+                                                            }
+                                                            extra.getString("sessionIDLength", ignoreCase = true)?.also {
+                                                                sessionIDLength = it
                                                             }
                                                             extra.getString("seqPlacement", ignoreCase = true)?.also {
                                                                 seqPlacement = it
@@ -1627,37 +1566,6 @@ fun buildV2RayConfig(
                                                     config = bean.echConfig
                                                 }
                                             }
-                                        }
-                                    }
-                                }
-                            } else if (bean is ShadowTLSBean) {
-                                protocol = "shadowtls"
-                                settings = LazyOutboundConfigurationObject(this,
-                                    V2RayConfig.ShadowTLSOutboundConfigurationObject().apply {
-                                        address = bean.serverAddress
-                                        port = bean.serverPort
-                                        if (bean.password.isNotEmpty()) password = bean.password
-                                        version = bean.protocolVersion
-                                    }
-                                )
-                                streamSettings = StreamSettingsObject().apply {
-                                    security = "tls"
-                                    tlsSettings = TLSObject().apply {
-                                        if (bean.sni.isNotEmpty()) {
-                                            serverName = bean.sni
-                                        }
-                                        if (bean.alpn.isNotEmpty()) {
-                                            alpn = bean.alpn.listByLineOrComma()
-                                        }
-                                        if (bean.allowInsecure) {
-                                            allowInsecure = true
-                                        }
-                                        if (bean.certificates.isNotEmpty()) {
-                                            disableSystemRoot = true
-                                            certificates = listOf(TLSObject.CertificateObject().apply {
-                                                usage = "verify"
-                                                certificate = bean.certificates.lines()
-                                            })
                                         }
                                     }
                                 }
@@ -2412,13 +2320,6 @@ fun buildV2RayConfig(
                     networkType = rule.networkType.toMutableList()
                 }
                 when {
-                    rule.reverse -> {
-                        inboundTag = listOf("reverse-${rule.id}")
-                        val outId = rule.outbound
-                        outboundTag = if (outId == proxy.id) tagProxy else {
-                            tagMap[outId] ?: error("outbound not found in rule ${rule.displayName()}")
-                        }
-                    }
                     balancerMap.containsKey(rule.outbound) -> {
                         balancerTag = balancerMap[rule.outbound]
                     }
@@ -2435,32 +2336,6 @@ fun buildV2RayConfig(
                     }
                 }
             })
-
-            if (rule.reverse) {
-                outbounds.add(OutboundObject().apply {
-                    tag = "reverse-out-${rule.id}"
-                    protocol = "freedom"
-                    settings = LazyOutboundConfigurationObject(this,
-                        FreedomOutboundConfigurationObject().apply {
-                            redirect = rule.redirect
-                        })
-                })
-                if (reverse == null) {
-                    reverse = ReverseObject().apply {
-                        bridges = ArrayList()
-                    }
-                }
-                reverse.bridges.add(ReverseObject.BridgeObject().apply {
-                    tag = "reverse-${rule.id}"
-                    domain = rule.domains.substringAfter("full:")
-                })
-                routing.rules.add(RoutingObject.RuleObject().apply {
-                    type = "field"
-                    inboundTag = listOf("reverse-${rule.id}")
-                    outboundTag = "reverse-out-${rule.id}"
-                })
-            }
-
         }
 
         if (!forTest && !forExport && routeMode == RouteMode.RULE && DataStore.profileRoutingRules) {

@@ -145,8 +145,6 @@
     <string name="route_play_store">Play store rule for %s</string>
     <string name="route_bypass_ip">IP rule for %s</string>
     <string name="route_reset">Reset</string>
-    <string name="route_reverse">Reverse proxy</string>
-    <string name="route_reverse_redirect">Reverse proxy address</string>
     <string name="route_manage_assets">Manage route assets</string>
     <string name="route_assets">Assets</string>
     <string name="route_rules_provider">Route assets provider</string>
@@ -203,7 +201,6 @@
     <string name="action_wireguard" translatable="false">WireGuard</string>
     <string name="action_mieru" translatable="false">mieru</string>
     <string name="action_tuic5" translatable="false">TUIC</string>
-    <string name="action_shadowtls" translatable="false">ShadowTLS</string>
     <string name="action_http3" translatable="false">HTTP/3</string>
     <string name="action_anytls" translatable="false">AnyTLS</string>
     <string name="proxy_chain">Proxy chain</string>
@@ -469,7 +466,6 @@
     <string name="reality_short_id">REALITY Short ID</string>
     <string name="reality_fingerprint">REALITY uTLS fingerprint</string>
     <string name="wireguard_reserved">Reserved</string>
-    <string name="shadowsocks_2022_implementation">Shadowsocks 2022 implementation</string>
     <string name="bootstrap_dns">Bootstrap DNS</string>
     <string name="use_local_dns_as_bootstrap_dns">Use system DNS as Bootstrap DNS</string>
     <string name="brook_fragment">Fragment</string>
@@ -678,4 +674,5 @@
     <string name="custom_outbound">Custom outbound</string>
     <string name="hysteria2_gecko_max_packet_size">Maximum packet size</string>
     <string name="hysteria2_gecko_min_packet_size">Minimum packet size</string>
+    <string name="nearby_devices_permission_notice">This requires the \"nearby devices\" permission to work, but the permission has not been granted.</string>
 </resources>

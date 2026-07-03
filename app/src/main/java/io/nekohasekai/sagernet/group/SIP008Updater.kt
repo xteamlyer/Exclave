@@ -63,6 +63,13 @@ object SIP008Updater : GroupUpdater() {
                         setUserAgent(subscription.customUserAgent)
                     } else {
                         setUserAgent(USER_AGENT)
+                        if (subscription.httpHeaders.isNotEmpty()) {
+                            for (header in subscription.httpHeaders.replace("\r\n", "\n").split("\n")) {
+                                if (header.isEmpty()) continue
+                                if (!header.contains(":")) error("invalid http header")
+                                setHeader(header.substringBefore(":"), header.substringAfter(":").trimStart())
+                            }
+                        }
                     }
                 }.execute()
 
@@ -107,7 +114,6 @@ object SIP008Updater : GroupUpdater() {
         } catch (_: Exception) {
             error("invalid response")
         }
-
 
         subscription.bytesUsed = sip008Response.getLong("bytes_used") ?: -1
         subscription.bytesRemaining = sip008Response.getLong("bytes_remaining") ?: -1

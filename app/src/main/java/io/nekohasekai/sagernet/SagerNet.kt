@@ -87,6 +87,12 @@ class SagerNet : Application(),
         updateNotificationChannels()
         Seq.setContext(this)
 
+        if (DataStore.getInstalledPackagesInited) {
+            runOnDefaultDispatcher {
+                PackageCache.register()
+            }
+        }
+
         val processName = if (Build.VERSION.SDK_INT >= 28) {
             getProcessName()
         } else {
@@ -107,7 +113,7 @@ class SagerNet : Application(),
             }
         }
 
-        if (isMainProcess) runOnDefaultDispatcher {
+        if (!isMainProcess) runOnDefaultDispatcher {
             runCatching {
                 SubscriptionUpdater.reconfigureUpdater()
             }
@@ -217,6 +223,7 @@ class SagerNet : Application(),
         val power by lazy { application.getSystemService<PowerManager>()!! }
         val wifi by lazy { application.getSystemService<WifiManager>()!! }
         val location by lazy { application.getSystemService<LocationManager>()!! }
+        val locale by lazy { application.getSystemService<LocaleManager>()!! }
 
         val currentProfile get() = SagerDatabase.proxyDao.getById(DataStore.selectedProxy)
 
