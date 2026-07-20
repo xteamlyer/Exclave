@@ -1160,12 +1160,6 @@ fun buildV2RayConfig(
                                                             extra.getString("sessionIDKey", ignoreCase = true)?.also {
                                                                 sessionIDKey = it
                                                             }
-                                                            extra.getString("sessionIDTable", ignoreCase = true)?.also {
-                                                                sessionIDTable = it
-                                                            }
-                                                            extra.getString("sessionIDLength", ignoreCase = true)?.also {
-                                                                sessionIDLength = it
-                                                            }
                                                             extra.getString("seqPlacement", ignoreCase = true)?.also {
                                                                 seqPlacement = it
                                                             }

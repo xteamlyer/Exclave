@@ -607,7 +607,7 @@
 
     <string-array name="splithttp_session_id_table_value">
         <item />
-        <item>base62</item>
+        <item>Base62</item>
         <item>hex</item>
         <item>HEX</item>
     </string-array>
