@@ -14,7 +14,6 @@ A fork of Exclave with some QoL features.
 - Transport and security in the type label (`VLESS ⫽ gRPC ⫽ REALITY`).
 - **Reconnect after network change** and **Auto-restart Hysteria 2** options.
 - **Fix XHTTP session ID being profiled by CDNs** — adds per-profile "Session ID format" (base62 / hex / HEX) and "Session ID length" so the session token doesn't look like a UUID.
-  - This change also requires modifications to Exclave-Core. To avoid maintaining a separate fork, the patch is provided as `exclave-core-custom-session-id.diff` in the repository root for build reproducibility — apply it to a clean exclave-core checkout with `git am`.
 - Various performance improvements.
 
 ## Original README:
