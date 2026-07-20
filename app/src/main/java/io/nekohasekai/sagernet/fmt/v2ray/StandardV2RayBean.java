@@ -178,7 +178,7 @@ public abstract class StandardV2RayBean extends AbstractBean {
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(37);
+        output.writeInt(38);
         super.serialize(output);
 
         output.writeString(uuid);
@@ -573,7 +573,12 @@ public abstract class StandardV2RayBean extends AbstractBean {
         if (version >= 36) {
             realityMldsa65Verify = input.readString();
         }
-        if (version >= 37) {
+        // NB: serverNameToVerify is gated on >= 38, not >= 37. The fork shipped its own
+        // serialization version 37 (with splithttp session ID) that predates upstream's
+        // serverNameToVerify addition, which also landed under 37 upstream. Reading it on
+        // fork-written 37 blobs shifts the stream and corrupts `name`. Bumped to 38 so old
+        // 37 blobs skip this field and deserialize correctly.
+        if (version >= 38) {
             serverNameToVerify = input.readString();
         }
     }
