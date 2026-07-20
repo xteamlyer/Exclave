@@ -54,6 +54,7 @@ import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
+import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.tuic5.Tuic5Bean
 import io.nekohasekai.sagernet.fmt.v2ray.StandardV2RayBean
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig
@@ -899,6 +900,9 @@ fun buildV2RayConfig(
                                                         }
                                                     }
                                                 }
+                                                if (bean.serverNameToVerify.isNotEmpty()) {
+                                                    serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
+                                                }
                                             }
                                         }
                                         "reality" -> {
@@ -1441,6 +1445,9 @@ fun buildV2RayConfig(
                                                 }
                                             }
                                         }
+                                        if (bean.serverNameToVerify.isNotEmpty()) {
+                                            serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
+                                        }
                                     }
                                 }
                             } else if (bean is Tuic5Bean) {
@@ -1454,7 +1461,6 @@ fun buildV2RayConfig(
                                         congestionControl = bean.congestionControl
                                         udpRelayMode = bean.udpRelayMode
                                         if (bean.zeroRTTHandshake) zeroRTTHandshake = bean.zeroRTTHandshake
-                                        if (bean.disableSNI) disableSNI = bean.disableSNI
                                         if (bean.singUDPOverStream && DataStore.experimentalFlagsProperties.getBooleanProperty("singuot")) {
                                             udpOverStream = bean.singUDPOverStream
                                         }
@@ -1507,6 +1513,15 @@ fun buildV2RayConfig(
                                                 if (bean.echConfig.isNotEmpty()) {
                                                     config = bean.echConfig
                                                 }
+                                            }
+                                        }
+                                        if (bean.serverNameToVerify.isNotEmpty()) {
+                                            serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
+                                        }
+                                        if (bean.disableSNI) {
+                                            serverName = "127.0.0.1" // Golang syntax suger
+                                            if (allowInsecure != true && serverNameToVerify.isNullOrEmpty()) {
+                                                serverNameToVerify = listOf(bean.sni.ifEmpty { bean.serverAddress })
                                             }
                                         }
                                     }
@@ -1567,6 +1582,9 @@ fun buildV2RayConfig(
                                                 }
                                             }
                                         }
+                                        if (bean.serverNameToVerify.isNotEmpty()) {
+                                            serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
+                                        }
                                     }
                                 }
                             } else if (bean is AnyTLSBean) {
@@ -1579,6 +1597,7 @@ fun buildV2RayConfig(
                                         idleSessionCheckInterval = bean.idleSessionCheckInterval
                                         idleSessionTimeout = bean.idleSessionTimeout
                                         minIdleSession = bean.minIdleSession
+                                        if (bean.disableReuse) disableReuse = bean.disableReuse
                                     }
                                 )
                                 streamSettings = StreamSettingsObject().apply {
@@ -1639,6 +1658,9 @@ fun buildV2RayConfig(
                                                             config = bean.echConfig
                                                         }
                                                     }
+                                                }
+                                                if (bean.serverNameToVerify.isNotEmpty()) {
+                                                    serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
                                                 }
                                             }
                                         }
@@ -1751,8 +1773,32 @@ fun buildV2RayConfig(
                                                 }
                                             }
                                         }
+                                        if (bean.serverNameToVerify.isNotEmpty()) {
+                                            serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
+                                        }
                                     }
                                 }
+                            } else if (bean is SnellBean) {
+                                protocol = "snell"
+                                settings = LazyOutboundConfigurationObject(this, V2RayConfig.SnellOutboundConfigurationObject().apply {
+                                    address = bean.serverAddress
+                                    port = bean.serverPort
+                                    psk = bean.psk
+                                    version = bean.version
+                                    reuse = bean.reuse
+                                    if (version == SnellBean.VERSION_4) {
+                                        obfsMode = bean.obfsMode
+                                        if (bean.obfsMode != SnellBean.OBFS_NONE && bean.obfsHost.isNotEmpty()) {
+                                            obfsHost = bean.obfsHost
+                                        }
+                                    }
+                                    if (version == SnellBean.VERSION_6) {
+                                        mode = bean.mode
+                                    }
+                                    if (DataStore.experimentalFlagsProperties.getBooleanProperty("singSnellUserKey") && bean.userKey.isNotEmpty()) {
+                                        userKey = bean.userKey
+                                    }
+                                })
                             } else if (bean is MieruBean) {
                                 protocol = "mieru"
                                 settings = LazyOutboundConfigurationObject(this,
@@ -1798,9 +1844,6 @@ fun buildV2RayConfig(
                                             "https" -> {}
                                             "quic" -> http3 = true
                                             else -> error("invalid")
-                                        }
-                                        if (bean.serverNameToVerify.isNotEmpty()) {
-                                            serverNameToVerify = bean.serverNameToVerify
                                         }
                                     }
                                 )
@@ -1855,6 +1898,9 @@ fun buildV2RayConfig(
                                                     config = bean.echConfig
                                                 }
                                             }
+                                        }
+                                        if (bean.serverNameToVerify.isNotEmpty()) {
+                                            serverNameToVerify = bean.serverNameToVerify.listByLineOrComma()
                                         }
                                     }
                                 }

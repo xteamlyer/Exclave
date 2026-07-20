@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- * Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>             *
+ * Copyright (C) 2026  starifly                                               *
  *                                                                            *
  * This program is free software: you can redistribute it and/or modify       *
  * it under the terms of the GNU General Public License as published by       *
@@ -21,24 +21,35 @@ package io.nekohasekai.sagernet.widget
 
 import android.content.Context
 import android.util.AttributeSet
-import io.nekohasekai.sagernet.database.DataStore
-import io.nekohasekai.sagernet.database.ProfileManager
+import androidx.appcompat.widget.AppCompatSpinner
 
-class TaskerProfilePreference : ReselectableSimpleMenuPreference {
+class ReselectableSpinner @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null
+) : AppCompatSpinner(context, attrs) {
 
-    constructor(context: Context) : super(context)
-    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+    var onPopupClosed: (() -> Unit)? = null
 
-    override fun getSummary(): CharSequence? {
-        if (value == "1") {
-            val taskerProfileId = DataStore.taskerProfileId
-            if (taskerProfileId > 0) {
-                ProfileManager.getProfile(taskerProfileId)?.displayName()?.let {
-                    return it
-                }
-            }
-        }
-        return super.getSummary()
+    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+        super.onWindowFocusChanged(hasWindowFocus)
+        if (hasWindowFocus) onPopupClosed?.invoke()
     }
 
+    override fun setSelection(position: Int) {
+        val reselected = position == selectedItemPosition
+        super.setSelection(position)
+        if (reselected) notifyReselected(position)
+    }
+
+    override fun setSelection(position: Int, animate: Boolean) {
+        val reselected = position == selectedItemPosition
+        super.setSelection(position, animate)
+        if (reselected) notifyReselected(position)
+    }
+
+    private fun notifyReselected(position: Int) {
+        if (position < 0) return
+        onItemSelectedListener?.onItemSelected(
+            this, selectedView, position, adapter?.getItemId(position) ?: -1L
+        )
+    }
 }

@@ -126,8 +126,7 @@ fun parseV2Ray5Outbound(outbound: JsonObject): List<AbstractBean> {
                                         v2rayBean.allowInsecure = allowInsecure
                                     }
                                 }
-                                if (v2rayBean is VLESSBean || v2rayBean is TrojanBean) {
-                                    // Only parse ECH for shit VLESS or Trojan free nodes
+                                if (v2rayBean is VLESSBean || v2rayBean is TrojanBean || v2rayBean is VMessBean) {
                                     tlsConfig.getString("echDohServer")?.also {
                                         v2rayBean.echEnabled = true
                                     }
@@ -401,6 +400,13 @@ fun parseV2Ray5Outbound(outbound: JsonObject): List<AbstractBean> {
                     (securitySettings.getString("serverName")
                         ?: securitySettings.getString("server_name"))?.also {
                         hysteria2Bean.sni = it
+                    }
+                    securitySettings.getString("echDohServer")?.also {
+                        hysteria2Bean.echEnabled = true
+                    }
+                    securitySettings.getString("echConfig")?.also {
+                        hysteria2Bean.echEnabled = true
+                        hysteria2Bean.echConfig = it
                     }
                 }
                 streamSettings.getObject("transportSettings")?.also { transportSettings ->

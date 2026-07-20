@@ -25,6 +25,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean
 import io.nekohasekai.sagernet.fmt.http.HttpBean
@@ -35,6 +36,7 @@ import io.nekohasekai.sagernet.fmt.mieru.MieruBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.supportedShadowsocks2022Method
 import io.nekohasekai.sagernet.fmt.shadowsocks.supportedShadowsocksMethod
+import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
@@ -152,8 +154,15 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                         v2rayBean.allowInsecure = true
                                     }
                                 }
-                                if (v2rayBean is VLESSBean || v2rayBean is TrojanBean) {
-                                    // Only parse ECH for shit VLESS or Trojan free nodes
+                                tlsSettings.getString("verifyPeerCertByName")?.split(",")
+                                    ?.filter { it.isNotEmpty() }?.takeIf { it.isNotEmpty() }?.also {
+                                        // Xray verifyPeerCertByName
+                                    v2rayBean.serverNameToVerify = it.joinToString("\n")
+                                }
+                                tlsSettings.getStringArray("serverNameToVerify")?.also {
+                                    v2rayBean.serverNameToVerify = it.joinToString("\n")
+                                }
+                                if (v2rayBean is VLESSBean || v2rayBean is TrojanBean || v2rayBean is VMessBean) {
                                     tlsSettings.getString("echDohServer")?.also {
                                         v2rayBean.echEnabled = true
                                     }
@@ -203,7 +212,7 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                         }
                     }
                 }
-                streamSettings.getString("network")?.lowercase()?.also { network ->
+                (streamSettings.getString("method") ?: streamSettings.getString("network"))?.lowercase()?.also { network ->
                     when (network) {
                         "tcp", "raw" -> {
                             v2rayBean.type = "tcp"
@@ -1178,7 +1187,10 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                         hysteria2Bean.allowInsecure = allowInsecure
                                     }
                                 }
-                                /*tlsSettings.getString("echDohServer")?.also {
+                                tlsSettings.getStringArray("serverNameToVerify")?.also {
+                                    hysteria2Bean.serverNameToVerify = it.joinToString("\n")
+                                }
+                                tlsSettings.getString("echDohServer")?.also {
                                     hysteria2Bean.echEnabled = true
                                 }
                                 tlsSettings.getString("echConfig")?.also {
@@ -1195,7 +1207,7 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                 tlsSettings.getObject("ech")?.also {
                                     hysteria2Bean.echEnabled = it.getBoolean("enabled")
                                     hysteria2Bean.echConfig = it.getString("config")
-                                }*/
+                                }
                             }
                         }
                         else -> return listOf()
@@ -1344,6 +1356,9 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                         tuic5Bean.allowInsecure = allowInsecure
                     }
                 }
+                tlsSettings.getStringArray("serverNameToVerify")?.also {
+                    tuic5Bean.serverNameToVerify = it.joinToString("\n")
+                }
                 /*tlsSettings.getObject("ech")?.also {
                     tuic5Bean.echEnabled = it.getBoolean("enabled")
                     tuic5Bean.echConfig = it.getString("config")
@@ -1433,6 +1448,9 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                     tlsSettings.getBoolean("allowInsecureIfPinnedPeerCertificate")?.also { allowInsecure ->
                         http3Bean.allowInsecure = allowInsecure
                     }
+                }
+                tlsSettings.getStringArray("serverNameToVerify")?.also {
+                    http3Bean.serverNameToVerify = it.joinToString("\n")
                 }
                 /*tlsSettings.getObject("ech")?.also {
                     http3Bean.echEnabled = it.getBoolean("enabled")
@@ -1529,6 +1547,9 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                 tlsSettings.getBoolean("allowInsecureIfPinnedPeerCertificate")?.also { allowInsecure ->
                                     anytlsBean.allowInsecure = allowInsecure
                                 }
+                            }
+                            tlsSettings.getStringArray("serverNameToVerify")?.also {
+                                anytlsBean.serverNameToVerify = it.joinToString("\n")
                             }
                             /*tlsSettings.getObject("ech")?.also {
                                 anytlsBean.echEnabled = it.getBoolean("enabled")
@@ -1638,6 +1659,9 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                         juicityBean.allowInsecure = allowInsecure
                     }
                 }
+                tlsSettings.getStringArray("serverNameToVerify")?.also {
+                    juicityBean.serverNameToVerify = it.joinToString("\n")
+                }
                 /*tlsSettings.getObject("ech")?.also {
                     juicityBean.echEnabled = it.getBoolean("enabled")
                     juicityBean.echConfig = it.getString("config")
@@ -1694,6 +1718,58 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                 }
             }
             return listOf(mieruBean)
+        }
+        "snell" -> {
+            val snellBean = SnellBean()
+            outbound.getObject("settings")?.also { settings ->
+                outbound.getString("tag")?.also {
+                    snellBean.name = it
+                }
+                settings.getString("address")?.also {
+                    snellBean.serverAddress = it
+                } ?: return listOf()
+                settings.getPort("port")?.also {
+                    snellBean.serverPort = it
+                } ?: return listOf()
+                snellBean.version = settings.getInt("version")
+                if (snellBean.version != 4 && snellBean.version != 6) {
+                    return listOf()
+                }
+                settings.getString("psk")?.also {
+                    snellBean.psk = it
+                }
+                if (DataStore.experimentalFlagsProperties.getBooleanProperty("singSnellUserKey")) {
+                    settings.getString("userKey")?.also {
+                        snellBean.userKey = it
+                    }
+                }
+                settings.getBoolean("reuse")?.also {
+                    snellBean.reuse = it
+                }
+                when (snellBean.version) {
+                    4 -> when (settings.getString("obfsMode")) {
+                        null, "", "none" -> {
+                            snellBean.obfsMode = SnellBean.OBFS_NONE
+                        }
+                        "http" -> {
+                            snellBean.obfsMode = SnellBean.OBFS_HTTP
+                            snellBean.obfsHost = settings.getString("obfsHost")
+                        }
+                        "tls" -> {
+                            snellBean.obfsMode = SnellBean.OBFS_TLS
+                            snellBean.obfsHost = settings.getString("obfsHost")
+                        }
+                        else -> return listOf()
+                    }
+                    6 -> snellBean.mode = when (settings.getString("mode")) {
+                        null, "", "default" -> SnellBean.MODE_DEFAULT
+                        "unshaped" -> SnellBean.MODE_UNSHAPED
+                        "unsafe-raw" -> SnellBean.MODE_UNSAFE_RAW
+                        else -> return listOf()
+                    }
+                }
+            }
+            return listOf(snellBean)
         }
         "wireguard" -> {
             val beanList = mutableListOf<WireGuardBean>()
@@ -1947,13 +2023,17 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                         hysteria2Bean.allowInsecure = true
                                     }
                                 }
-                                /*tlsSettings.getString("echConfigList")?.also {
+                                tlsSettings.getString("verifyPeerCertByName")?.split(",")
+                                    ?.filter { it.isNotEmpty() }?.takeIf { it.isNotEmpty() }?.also {
+                                        hysteria2Bean.serverNameToVerify = it.joinToString("\n")
+                                    }
+                                tlsSettings.getString("echConfigList")?.also {
                                     hysteria2Bean.echEnabled = true
                                     try {
                                         Base64.getDecoder().decode(it)
                                         hysteria2Bean.echConfig = it
                                     } catch (_: Exception) {}
-                                }*/
+                                }
                             }
                         }
                         else -> return listOf()
@@ -1981,6 +2061,7 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                     trusttunnelBean.password = it
                 }
                 settings.getString("serverNameToVerify")?.also {
+                    // for old Exclave backward compatibility
                     trusttunnelBean.serverNameToVerify = it
                 }
                 settings.getBoolean("http3")?.also {
@@ -2048,6 +2129,9 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                         tlsSettings.getBoolean("allowInsecureIfPinnedPeerCertificate")?.also { allowInsecure ->
                             trusttunnelBean.allowInsecure = allowInsecure
                         }
+                    }
+                    tlsSettings.getStringArray("serverNameToVerify")?.also {
+                        trusttunnelBean.serverNameToVerify = it.joinToString("\n")
                     }
                     /*tlsSettings.getObject("ech")?.also {
                         trusttunnelBean.echEnabled = it.getBoolean("enabled")

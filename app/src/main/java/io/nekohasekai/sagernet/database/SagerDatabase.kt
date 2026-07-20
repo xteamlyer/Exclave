@@ -105,6 +105,9 @@ import kotlinx.coroutines.launch
         from = 35,
         to = 36,
         spec = SagerDatabase_Migration_35_36::class
+    ), AutoMigration(
+        from = 36,
+        to = 37,
     )]
 )
 @TypeConverters(value = [KryoConverters::class, GsonConverters::class])

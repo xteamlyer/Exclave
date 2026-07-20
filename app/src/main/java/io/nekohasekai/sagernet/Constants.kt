@@ -243,7 +243,8 @@ object Key {
     const val SERVER_ANYTLS_IDLE_SESSION_CHECK_INTERVAL = "serverAnyTLSIdleSessionCheckInterval"
     const val SERVER_ANYTLS_IDLE_SESSION_TIMEOUT = "serverAnyTLSIdleSessionTimeout"
     const val SERVER_ANYTLS_MIN_IDLE_SESSION = "serverAnyTLSMinIdleSession"
-    const val SERVER_TRUSTTUNNEL_SERVER_NAME_TO_VERIFY = "serverTrustTunnelServerNameToVerify"
+    const val SERVER_ANYTLS_DISABLE_REUSE = "serverAnyTLSDisableReuse"
+    const val SERVER_SERVER_NAME_TO_VERIFY = "serverServerNameToVerify"
     const val SERVER_HYSTERIA2_OMIT_MAX_DATAGRAM_FRAME_SIZE = "serverHysteria2OmitMaxDatagramFrameSize"
     const val SERVER_SSH_KEEPALIVE_INTERVAL = "serverSSHKeepaliveInterval"
 
@@ -255,6 +256,15 @@ object Key {
     const val SERVER_HYSTERIA2_OBFS_TYPE = "serverHysteria2ObfsType"
     const val SERVER_HYSTERIA2_GECKO_MIN_PACKET_SIZE = "serverHysteria2GeckoMinPacketSize"
     const val SERVER_HYSTERIA2_GECKO_MAX_PACKET_SIZE = "serverHysteria2GeckoMaxPacketSize"
+
+    const val SERVER_SNELL_VERSION = "serverSnellVersion"
+    const val SERVER_SNELL_REUSE = "serverSnellReuse"
+    const val SERVER_SNELL_PSK = "serverSnellPSK"
+    const val SERVER_SNELL_USER_KEY = "serverSnellUserKey"
+
+    const val SERVER_SNELL_OBFS_MODE = "serverSnellObfsMode"
+    const val SERVER_SNELL_OBFS_HOST = "serverSnellObfsHost"
+    const val SERVER_SNELL_MODE = "serverSnellMode"
 
     const val SERVER_NAIVE_NO_POST_QUANTUM = "serverNaiveNoPostQuantum"
     const val SERVER_SHADOWQUIC_DISABLE_ALPN = "serverShadowQUICDisableALPN"
@@ -269,7 +279,7 @@ object Key {
     const val SERVER_SING_MUX_MIN_STREAMS = "serverSingMuxMinStreams"
     const val SERVER_SING_MUX_MAX_STREAMS = "serverSingMuxMaxStreams"
     const val SERVER_SING_MUX_PADDING = "serverSingMuxPadding"
-
+    const val SERVER_SING_SNELL_CATEGORY = "serverSingSnellCategory"
     const val EXPERIMENTAL_FLAGS = "experimentalFlags"
     const val OVERRIDE_UTLS_FP_TLS = "overrideUTLSFingerprintForTLS"
     const val OVERRIDE_UTLS_FP_REALITY = "overrideUTLSFingerprintForREALITY"

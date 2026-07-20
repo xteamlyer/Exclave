@@ -849,6 +849,23 @@ github.com/sagernet/sing-shadowsocks2
       You should have received a copy of the GNU General Public License
       along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+github.com/sagernet/sing-snell
+
+      Copyright (C) 2022 by nekohasekai <contact-sagernet@sekai.icu>
+
+      This program is free software: you can redistribute it and/or modify
+      it under the terms of the GNU General Public License as published by
+      the Free Software Foundation, either version 3 of the License, or
+      (at your option) any later version.
+
+      This program is distributed in the hope that it will be useful,
+      but WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+      GNU General Public License for more details.
+
+      You should have received a copy of the GNU General Public License
+      along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 github.com/sagernet/smux
 
       MIT License
@@ -1235,7 +1252,7 @@ golang.zx2c4.com/wireguard
 
 google.golang.org/genproto/googleapis/rpc
 
-      Copyright 2025 Google LLC
+      Copyright 2026 Google LLC
 
       Licensed under the Apache License, Version 2.0 (the "License");
       you may not use this file except in compliance with the License.

@@ -23,6 +23,7 @@ import com.github.shadowsocks.plugin.PluginOptions
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean
 import io.nekohasekai.sagernet.fmt.http.HttpBean
@@ -34,6 +35,7 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRMethod
 import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRObfs
 import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRProtocol
+import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
@@ -203,10 +205,10 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                                         v2rayBean.mtlsCertificatePrivateKey = key
                                     }
                                 }
-                                tls.getByteArrayArray("certificate_public_key_sha256")?.also {
+                                tls.getByteArrayArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                                     v2rayBean.pinnedPeerCertificatePublicKeySha256 = it.joinToString("\n") { Base64.encode(it) }
                                     v2rayBean.allowInsecure = true
-                                } ?: tls.getByteArray("certificate_public_key_sha256")?.also {
+                                } ?: tls.getByteArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                                     v2rayBean.pinnedPeerCertificatePublicKeySha256 = Base64.encode(it)
                                     v2rayBean.allowInsecure = true
                                 }
@@ -226,8 +228,8 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                                 tls.getString("utls")?.also {
                                     v2rayBean.realityFingerprint = it
                                 }
-                                if (v2rayBean is VLESSBean || v2rayBean is TrojanBean) {
-                                    // Only parse ECH for shit VLESS or Trojan free nodes
+                                if (v2rayBean is VLESSBean || v2rayBean is TrojanBean || v2rayBean is VMessBean) {
+                                    // Only parse ECH for shit VLESS, Trojan or VMess free nodes
                                     tls.getObject("ech")?.also { ech ->
                                     ech.getBoolean("enabled")?.also { enabled ->
                                         if (enabled) {
@@ -442,14 +444,14 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                             mtlsCertificatePrivateKey = key
                         }
                     }
-                    tls.getByteArrayArray("certificate_public_key_sha256")?.also {
+                    tls.getByteArrayArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                         pinnedPeerCertificatePublicKeySha256 = it.joinToString("\n") { Base64.encode(it) }
                         allowInsecure = true
-                    } ?: tls.getByteArray("certificate_public_key_sha256")?.also {
+                    } ?: tls.getByteArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                         pinnedPeerCertificatePublicKeySha256 = Base64.encode(it)
                         allowInsecure = true
                     }
-                    /*tls.getObject("ech")?.also { ech ->
+                    tls.getObject("ech")?.also { ech ->
                         ech.getBoolean("enabled")?.also { enabled ->
                             if (enabled) {
                                 echEnabled = true
@@ -460,7 +462,7 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                                 }
                             }
                         }
-                    }*/
+                    }
                 } ?: return listOf()
                 outbound.getObject("obfs")?.also { obfuscation ->
                     obfuscation.getString("type")?.takeIf { it.isNotEmpty() }?.also { type ->
@@ -578,10 +580,10 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                             mtlsCertificatePrivateKey = key
                         }
                     }
-                    tls.getByteArrayArray("certificate_public_key_sha256")?.also {
+                    tls.getByteArrayArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                         pinnedPeerCertificatePublicKeySha256 = it.joinToString("\n") { Base64.encode(it) }
                         allowInsecure = true
-                    } ?: tls.getByteArray("certificate_public_key_sha256")?.also {
+                    } ?: tls.getByteArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                         pinnedPeerCertificatePublicKeySha256 = Base64.encode(it)
                         allowInsecure = true
                     }
@@ -755,10 +757,10 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                                     mtlsCertificatePrivateKey = key
                                 }
                             }
-                            tls.getByteArrayArray("certificate_public_key_sha256")?.also {
+                            tls.getByteArrayArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                                 pinnedPeerCertificatePublicKeySha256 = it.joinToString("\n") { Base64.encode(it) }
                                 allowInsecure = true
-                            } ?: tls.getByteArray("certificate_public_key_sha256")?.also {
+                            } ?: tls.getByteArray("certificate_public_key_sha256")?.takeIf { it.isNotEmpty() }?.also {
                                 pinnedPeerCertificatePublicKeySha256 = Base64.encode(it)
                                 allowInsecure = true
                             }
@@ -840,6 +842,55 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                 }
             }
             return listOf(naiveBean)
+        }
+        "snell" -> {
+            val snellBean = SnellBean().apply {
+                outbound.getString("tag", ignoreCase = false)?.also {
+                    name = it
+                }
+                outbound.getString("server")?.also {
+                    serverAddress = it
+                } ?: return listOf()
+                outbound.getInt("server_port")?.also {
+                    serverPort = it
+                } ?: return listOf()
+                version = outbound.getInt("version")
+                if (version != 4 && version != 6) return listOf()
+                outbound.getString("psk")?.also {
+                    psk = it
+                }
+                if (DataStore.experimentalFlagsProperties.getBooleanProperty("singSnellUserKey")) {
+                    outbound.getString("userkey")?.also {
+                        userKey = it
+                    }
+                }
+                outbound.getBoolean("reuse")?.also {
+                    reuse = it
+                }
+                when (version) {
+                    4 -> when (outbound.getString("obfs_mode")?.lowercase()) {
+                        null, "", "none" -> {
+                            obfsMode = SnellBean.OBFS_NONE
+                        }
+                        "http" -> {
+                            obfsMode = SnellBean.OBFS_HTTP
+                            obfsHost = outbound.getString("obfs_host")
+                        }
+                        "tls" -> {
+                            obfsMode = SnellBean.OBFS_TLS
+                            obfsHost = outbound.getString("obfs_host")
+                        }
+                        else -> return listOf()
+                    }
+                    6 -> mode = when (outbound.getString("mode")) {
+                        null, "", "default" -> SnellBean.MODE_DEFAULT
+                        "unshaped" -> SnellBean.MODE_UNSHAPED
+                        "unsafe-raw" -> SnellBean.MODE_UNSAFE_RAW
+                        else -> return listOf()
+                    }
+                }
+            }
+            return listOf(snellBean)
         }
         "wireguard" -> {
             if (outbound.contains("address")) {

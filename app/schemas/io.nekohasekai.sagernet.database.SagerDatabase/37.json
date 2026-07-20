@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 37,
-    "identityHash": "14e3ae88d4dbf436eb1b24b895d5e9c2",
+    "identityHash": "874f34016d0bea087a38ace4ad66080f",
     "entities": [
       {
         "tableName": "proxy_groups",
@@ -72,7 +72,7 @@
       },
       {
         "tableName": "proxy_entities",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `groupId` INTEGER NOT NULL, `type` INTEGER NOT NULL, `userOrder` INTEGER NOT NULL, `tx` INTEGER NOT NULL, `rx` INTEGER NOT NULL, `status` INTEGER NOT NULL, `ping` INTEGER NOT NULL, `uuid` TEXT NOT NULL, `error` TEXT, `socksBean` BLOB, `httpBean` BLOB, `ssBean` BLOB, `ssrBean` BLOB, `vmessBean` BLOB, `vlessBean` BLOB, `trojanBean` BLOB, `naiveBean` BLOB, `hysteria2Bean` BLOB, `mieruBean` BLOB, `tuic5Bean` BLOB, `sshBean` BLOB, `wgBean` BLOB, `juicityBean` BLOB, `http3Bean` BLOB, `anytlsBean` BLOB, `shadowquicBean` BLOB, `trustTunnelBean` BLOB, `configBean` BLOB, `chainBean` BLOB, `balancerBean` BLOB, `hidden` INTEGER NOT NULL DEFAULT 0)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `groupId` INTEGER NOT NULL, `type` INTEGER NOT NULL, `userOrder` INTEGER NOT NULL, `tx` INTEGER NOT NULL, `rx` INTEGER NOT NULL, `status` INTEGER NOT NULL, `ping` INTEGER NOT NULL, `uuid` TEXT NOT NULL, `error` TEXT, `socksBean` BLOB, `httpBean` BLOB, `ssBean` BLOB, `ssrBean` BLOB, `vmessBean` BLOB, `vlessBean` BLOB, `trojanBean` BLOB, `naiveBean` BLOB, `hysteria2Bean` BLOB, `mieruBean` BLOB, `tuic5Bean` BLOB, `sshBean` BLOB, `wgBean` BLOB, `juicityBean` BLOB, `http3Bean` BLOB, `anytlsBean` BLOB, `shadowquicBean` BLOB, `trustTunnelBean` BLOB, `snellBean` BLOB, `configBean` BLOB, `chainBean` BLOB, `balancerBean` BLOB)",
         "fields": [
           {
             "fieldPath": "id",
@@ -224,6 +224,11 @@
             "affinity": "BLOB"
           },
           {
+            "fieldPath": "snellBean",
+            "columnName": "snellBean",
+            "affinity": "BLOB"
+          },
+          {
             "fieldPath": "configBean",
             "columnName": "configBean",
             "affinity": "BLOB"
@@ -237,13 +242,6 @@
             "fieldPath": "balancerBean",
             "columnName": "balancerBean",
             "affinity": "BLOB"
-          },
-          {
-            "fieldPath": "hidden",
-            "columnName": "hidden",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -462,7 +460,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '14e3ae88d4dbf436eb1b24b895d5e9c2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '874f34016d0bea087a38ace4ad66080f')"
     ]
   }
 }

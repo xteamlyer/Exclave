@@ -366,6 +366,14 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverHysteria2GeckoMinPacketSize by profileCacheStore.stringToInt(Key.SERVER_HYSTERIA2_GECKO_MIN_PACKET_SIZE)
     var serverHysteria2GeckoMaxPacketSize by profileCacheStore.stringToInt(Key.SERVER_HYSTERIA2_GECKO_MAX_PACKET_SIZE)
 
+    var serverSnellVersion by profileCacheStore.stringToInt(Key.SERVER_SNELL_VERSION)
+    var serverSnellReuse by profileCacheStore.boolean(Key.SERVER_SNELL_REUSE)
+    var serverSnellPSK by profileCacheStore.string(Key.SERVER_SNELL_PSK)
+    var serverSnellUserKey by profileCacheStore.string(Key.SERVER_SNELL_USER_KEY)
+    var serverSnellObfsMode by profileCacheStore.string(Key.SERVER_SNELL_OBFS_MODE)
+    var serverSnellObfsHost by profileCacheStore.string(Key.SERVER_SNELL_OBFS_HOST)
+    var serverSnellMode by profileCacheStore.string(Key.SERVER_SNELL_MODE)
+
     var serverVMessExperimentalAuthenticatedLength by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_AUTHENTICATED_LENGTH)
     var serverVMessExperimentalNoTerminationSignal by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_NO_TERMINATION_SIGNAL)
 
@@ -397,7 +405,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverAnyTLSIdleSessionCheckInterval by profileCacheStore.stringToInt(Key.SERVER_ANYTLS_IDLE_SESSION_CHECK_INTERVAL) { 30 }
     var serverAnyTLSIdleSessionTimeout by profileCacheStore.stringToInt(Key.SERVER_ANYTLS_IDLE_SESSION_TIMEOUT) { 30 }
     var serverAnyTLSMinIdleSession by profileCacheStore.stringToInt(Key.SERVER_ANYTLS_MIN_IDLE_SESSION)
-    var serverTrustTunnelServerNameToVerify by profileCacheStore.string(Key.SERVER_TRUSTTUNNEL_SERVER_NAME_TO_VERIFY)
+    var serverAnyTLSDisableReuse by profileCacheStore.boolean(Key.SERVER_ANYTLS_DISABLE_REUSE)
+    var serverServerNameToVerify by profileCacheStore.string(Key.SERVER_SERVER_NAME_TO_VERIFY)
     var serverHysteria2OmitMaxDatagramFrameSize by profileCacheStore.boolean(Key.SERVER_HYSTERIA2_OMIT_MAX_DATAGRAM_FRAME_SIZE)
     var serverSSHKeepaliveInterval by profileCacheStore.stringToInt(Key.SERVER_SSH_KEEPALIVE_INTERVAL)
 
