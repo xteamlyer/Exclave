@@ -145,6 +145,28 @@ object SagerDatabase_Migration_36_37 : Migration(36, 37) {
     }
 }
 
+object SagerDatabase_Migration_37_38 : Migration(37, 38) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Fork's version 37 (pre-merge) lacked `snellBean`, which upstream's Snell
+        // support added to proxy_entities. Existing 37 installs get no migration on a
+        // same-version schema change, so add the column here (guarded for safety).
+        if (!hasColumn(database, "proxy_entities", "snellBean")) {
+            database.execSQL("""ALTER TABLE `proxy_entities` ADD COLUMN `snellBean` BLOB""")
+        }
+    }
+
+    private fun hasColumn(database: SupportSQLiteDatabase, table: String, column: String): Boolean {
+        database.query("PRAGMA table_info(`$table`)").use { cursor ->
+            val nameIndex = cursor.getColumnIndex("name")
+            if (nameIndex < 0) return false
+            while (cursor.moveToNext()) {
+                if (cursor.getString(nameIndex) == column) return true
+            }
+        }
+        return false
+    }
+}
+
 @DeleteTable(
     tableName = "KeyValuePair"
 )
