@@ -1174,11 +1174,6 @@ class ConfigurationFragment @JvmOverloads constructor(
             }
             checkOrderMenu()
 
-            if (!DataStore.experimentalFlagsProperties.getBooleanProperty("shadowquic")) {
-                (parentFragment as? ToolbarFragment)
-                    ?.toolbar?.menu?.findItem(R.id.action_new_shadowquic)?.isVisible  = false
-            }
-
             if (showBackup) {
                 (parentFragment as? ToolbarFragment)
                     ?.toolbar?.menu?.findItem(R.id.action_import_backup)?.isVisible = true
