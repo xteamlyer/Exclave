@@ -527,13 +527,25 @@ object RawUpdater : GroupUpdater() {
                 protectBalancerEntryBeans(entryBeans.map { (_, bean) -> bean })
                 val multipleBalancers = balancers.size >= 2
                 balancers.forEach { b ->
-                    val selector = b.getStringArray("selector") ?: return@forEach
-                    if (selector.isEmpty()) return@forEach
+                    val selector = b.getStringArray("selector").orEmpty()
+                    val fallbackTag = b.getString("fallbackTag")?.trim().orEmpty()
+                    if (selector.isEmpty() && fallbackTag.isEmpty()) return@forEach
                     val strategy = b.getObject("strategy")?.getString("type") ?: "random"
                     val memberBeans = ArrayList<AbstractBean>()
                     for ((tag, bean) in entryBeans) {
                         if (selector.any { p -> tag.startsWith(p) } && memberBeans.none { it === bean }) {
                             memberBeans.add(bean)
+                        }
+                    }
+                    // The core keeps fallbackTag out of the candidate pool entirely and only routes
+                    // to it once a balancer has nothing left to pick, so it is not a member here
+                    // either. Pull it in only when the balancer would otherwise be thrown away for
+                    // having fewer than two members -- a degraded balancer still beats no balancer.
+                    if (memberBeans.size < 2 && fallbackTag.isNotEmpty()) {
+                        for ((tag, bean) in entryBeans) {
+                            if (tag == fallbackTag && memberBeans.none { it === bean }) {
+                                memberBeans.add(bean)
+                            }
                         }
                     }
                     if (memberBeans.size >= 2) {
