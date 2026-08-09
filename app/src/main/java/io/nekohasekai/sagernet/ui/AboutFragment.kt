@@ -130,7 +130,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                             .setOnClickAction {
                                 startActivity(Intent(
                                     Intent.ACTION_VIEW,
-                                    "https://github.com/ExclaveNetwork/Exclave/releases".toUri()
+                                    "https://github.com/w2ppx/BetterExclave/releases".toUri()
                                 ))
                             }
                             .setOnLongClickAction {
@@ -201,7 +201,7 @@ class AboutFragment : ToolbarFragment(R.layout.layout_about) {
                             .setOnClickAction {
                                 startActivity(Intent(
                                     Intent.ACTION_VIEW,
-                                    "https://github.com/ExclaveNetwork/Exclave".toUri()
+                                    "https://github.com/w2ppx/BetterExclave".toUri()
                                 ))
                             }
                             .build())
