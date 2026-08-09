@@ -23,6 +23,7 @@ import static io.nekohasekai.sagernet.fmt.gson.GsonsKt.getGson;
 
 import androidx.annotation.NonNull;
 
+import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.ByteBufferInput;
 import com.esotericsoftware.kryo.io.ByteBufferOutput;
 
@@ -41,6 +42,14 @@ public abstract class AbstractBean extends Serializable {
     public String name;
 
     public transient boolean isChain;
+    /**
+     * Serialization version 37 is ambiguous: this fork used it for the splithttp session ID
+     * fields, upstream used it for {@code serverNameToVerify}, and builds carrying the merge
+     * of both wrote every one of those fields under 37. Blobs written by the fork are the
+     * default reading; {@link KryoConverters#deserialize} flips this flag and retries when
+     * that reading desynchronizes the stream.
+     */
+    public transient boolean readServerNameToVerifyOnV37;
     public transient String finalAddress;
     public transient int finalPort;
 
@@ -102,6 +111,11 @@ public abstract class AbstractBean extends Serializable {
     public void deserializeFromBuffer(@NonNull ByteBufferInput input) {
         deserialize(input);
         int extraVersion = input.readInt();
+        if (extraVersion < 0 || extraVersion > 3) {
+            // Never written out of this range: the stream is misaligned, fail before reading
+            // a bogus string length out of it.
+            throw new KryoException("invalid extra version " + extraVersion);
+        }
         name = input.readString();
         extraType = input.readInt();
         if (extraType != ExtraType.NONE) {

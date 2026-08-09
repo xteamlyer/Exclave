@@ -21,8 +21,6 @@ package io.nekohasekai.sagernet.fmt;
 
 import androidx.room.TypeConverter;
 
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.ByteBufferInput;
 import com.esotericsoftware.kryo.io.ByteBufferOutput;
 
 import java.io.ByteArrayInputStream;
@@ -71,12 +69,25 @@ public class KryoConverters {
 
     public static <T extends Serializable> T deserialize(T bean, byte[] bytes) {
         if (bytes == null) return bean;
-        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
-        ByteBufferInput buffer = KryosKt.byteBuffer(input);
         try {
-            bean.deserializeFromBuffer(buffer);
-        } catch (KryoException e) {
-            Logs.INSTANCE.w(e);
+            bean.deserializeFromBuffer(KryosKt.byteBuffer(new ByteArrayInputStream(bytes)));
+        } catch (Exception e) {
+            // Serialization version 37 is ambiguous between fork-written and upstream-written
+            // blobs (see StandardV2RayBean.deserialize). A misread there desynchronizes the
+            // stream, so retry once with the other layout before giving up. Any exception is
+            // caught, not just KryoException: a misaligned string length surfaces as
+            // StringIndexOutOfBoundsException out of Kryo, which used to crash the profile list.
+            boolean recovered = false;
+            if (bean instanceof AbstractBean abstractBean && !abstractBean.readServerNameToVerifyOnV37) {
+                abstractBean.readServerNameToVerifyOnV37 = true;
+                try {
+                    bean.deserializeFromBuffer(KryosKt.byteBuffer(new ByteArrayInputStream(bytes)));
+                    recovered = true;
+                } catch (Exception ignored) {
+                    abstractBean.readServerNameToVerifyOnV37 = false;
+                }
+            }
+            if (!recovered) Logs.INSTANCE.w(e);
         }
         bean.initializeDefaultValues();
         return bean;

@@ -579,7 +579,11 @@ public abstract class StandardV2RayBean extends AbstractBean {
         // serverNameToVerify addition, which also landed under 37 upstream. Reading it on
         // fork-written 37 blobs shifts the stream and corrupts `name`. Bumped to 38 so old
         // 37 blobs skip this field and deserialize correctly.
-        if (version >= 38) {
+        //
+        // Blobs written by upstream, or by the short-lived merged build that wrote both the
+        // session ID fields and serverNameToVerify under 37, do carry it. Those desync on the
+        // default reading, so KryoConverters retries them with readServerNameToVerifyOnV37 set.
+        if (version >= 38 || (version == 37 && readServerNameToVerifyOnV37)) {
             serverNameToVerify = input.readString();
         }
     }
