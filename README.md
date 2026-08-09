@@ -62,6 +62,8 @@ Some supported protocols:
 
   SHA-256 hash of the signing certificate: `e9fe39e1ce254c50c2f9470a757b378c0b7cc536119867f7691405b592e6994b`
 
+  The default flavor (versions without `-legacy` suffix) supports Android 6.0+. The legacy flavor (versions with `-legacy` suffix, with some Gradle dependencies pinned to old versions) supports Android 5.0+. The legacy flavor is for old devices only and using it on new devices may lead to [unexpected behaviors](https://issuetracker.google.com/issues/519796838). The support for the legacy flavor is on a best-efforts basis and may be ended at any time.
+
 - NaïveProxy Plugin
 
   [Download from GitHub releases](https://github.com/klzgrad/naiveproxy/releases)
@@ -136,15 +138,15 @@ Exclave is licensed under the GNU General Public License as published by the Fre
 
   - Build libexclavecore: `./run lib core` or `./library/core/build.sh`
   - Download assets: `./gradlew :app:downloadAssets`, or update assets to the latest version: `./gradlew :app:updateAssets`
-  - Build Exclave: `./gradlew :app:assembleOssRelease`
+  - Build Exclave: `./gradlew :app:assembleOssRelease` (default flavor) or `./gradlew :app:assembleLegacyRelease` (legacy flavor)
 
 - Windows (x64):
 
-  - Build libexclavecore: `./library/core/build.bat`
-  - Download assets: `./gradlew.bat :app:downloadAssets`, or update assets to the latest version: `./gradlew.bat :app:updateAssets`
-  - Build Exclave: `./gradlew.bat :app:assembleOssRelease`
+  - Build libexclavecore: `.\library\core\build.bat`
+  - Download assets: `.\gradlew.bat :app:downloadAssets`, or update assets to the latest version: `.\gradlew.bat :app:updateAssets`
+  - Build Exclave: `.\gradlew.bat :app:assembleOssRelease` (default flavor) or `.\gradlew.bat :app:assembleLegacyRelease` (legacy flavor)
 
-- APK files are located in `./app/build/outputs/apk/oss/release`
+- APK files are located in `.\app\build\outputs\apk\oss\release` (default flavor) or `.\app\build\outputs\apk\legacy\release` (legacy flavor).
 
 ## Acknowledgment
 

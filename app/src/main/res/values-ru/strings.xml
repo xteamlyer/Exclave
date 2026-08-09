@@ -571,7 +571,6 @@
     <string name="insecure_warn">Советы по безопасности</string>
     <string name="insecure_warn_sum">Отображать предупреждения для профилей со слабой защитой, эквивалентной открытому тексту.</string>
     <string name="ech">ECH</string>
-    <string name="server_name_to_verify">ServerNameToVerify (имя сервера для проверки)</string>
     <string name="mieru_traffic_pattern">Паттерн трафика</string>
     <string name="insecure_warning_detail">Безопасность этого профиля эквивалентна открытому тексту.\n\nЭто предупреждение отображается, поскольку включена функция \"Советы по безопасности\".</string>
     <string name="hysteria_hop_interval_min">Минимальный интервал переключения портов (с)</string>
@@ -593,4 +592,7 @@
     <string name="snell_obfs_host">Хост обфускации</string>
     <string name="snell_mode">Режим</string>
     <string name="anytls_disable_reuse">Отключить повторное использование соединения</string>
+    <string name="chrome_parrot_omit_max_datagram_frame_size_datagram_warning">Эта опция отключена для соответствия поведению Chrome.</string>
+    <string name="option_globally_enabled">Эта опция включена глобально, поэтому значение будет игнорироваться.</string>
+    <string name="chrome_parrot_summary">Имитировать QUIC Client Hello браузера Chrome</string>
 </resources>

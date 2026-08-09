@@ -58,6 +58,7 @@ public class Hysteria2Bean extends AbstractBean {
     public Integer geckoMinPacketSize;
     public Integer geckoMaxPacketSize;
     public String serverNameToVerify;
+    public Boolean chromeParrot;
 
     @Override
     public void initializeDefaultValues() {
@@ -87,11 +88,12 @@ public class Hysteria2Bean extends AbstractBean {
         if (geckoMinPacketSize == null) geckoMinPacketSize = 0;
         if (geckoMaxPacketSize == null) geckoMaxPacketSize = 0;
         if (serverNameToVerify == null) serverNameToVerify = "";
+        if (chromeParrot == null) chromeParrot = false;
     }
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(10);
+        output.writeInt(11);
         super.serialize(output);
         output.writeString(auth);
         switch (obfsType) {
@@ -121,7 +123,11 @@ public class Hysteria2Bean extends AbstractBean {
         output.writeLong(hopIntervalMax);
         output.writeString(congestionControl);
         output.writeString(bbrProfile);
-        output.writeBoolean(omitMaxDatagramFrameSize);
+        if (chromeParrot) {
+            output.writeBoolean(false); // omitMaxDatagramFrameSize
+        } else {
+            output.writeBoolean(omitMaxDatagramFrameSize);
+        }
         output.writeString(obfsType);
         switch (obfsType) {
             case "gecko":
@@ -134,6 +140,7 @@ public class Hysteria2Bean extends AbstractBean {
                 break;
         }
         output.writeString(serverNameToVerify);
+        output.writeBoolean(chromeParrot);
     }
 
     @Override
@@ -226,6 +233,12 @@ public class Hysteria2Bean extends AbstractBean {
         if (version >= 10) {
             serverNameToVerify = input.readString();
         }
+        if (version >= 11) {
+            chromeParrot = input.readBoolean();
+            if (chromeParrot) {
+                omitMaxDatagramFrameSize = false;
+            }
+        }
     }
 
     @Override
@@ -264,6 +277,7 @@ public class Hysteria2Bean extends AbstractBean {
         if (bean.geckoMaxPacketSize == null || bean.geckoMaxPacketSize == 0) {
             bean.geckoMaxPacketSize = geckoMaxPacketSize;
         }
+        bean.chromeParrot = chromeParrot;
     }
 
     @Override
