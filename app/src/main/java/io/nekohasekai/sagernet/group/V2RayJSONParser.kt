@@ -772,7 +772,7 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                 else -> {
                                     val parts = encryption.split(".")
                                     if (parts.size < 4 || parts[0] != "mlkem768x25519plus"
-                                        || !(parts[1] == "native" || parts[1] == "xorpub" || parts[1] != "random")
+                                        || !(parts[1] == "native" || parts[1] == "xorpub" || parts[1] == "random")
                                         || !(parts[2] == "1rtt" || parts[2] == "0rtt")) {
                                         error("unsupported vless encryption")
                                     }
@@ -809,7 +809,7 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                                     else -> {
                                         val parts = encryption.split(".")
                                         if (parts.size < 4 || parts[0] != "mlkem768x25519plus"
-                                            || !(parts[1] == "native" || parts[1] == "xorpub" || parts[1] != "random")
+                                            || !(parts[1] == "native" || parts[1] == "xorpub" || parts[1] == "random")
                                             || !(parts[2] == "1rtt" || parts[2] == "0rtt")) {
                                             error("unsupported vless encryption")
                                         }
@@ -1047,7 +1047,8 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                     else -> return listOf()
                 }
             }
-            if (v2rayBean is VLESSBean && v2rayBean.security != "none" && v2rayBean.flow == "xtls-rprx-vision-udp443" && v2rayBean.type != "tcp") {
+            if (v2rayBean is VLESSBean && v2rayBean.security != "none"&& v2rayBean.flow == "xtls-rprx-vision-udp443"
+                && v2rayBean.type != "tcp" && v2rayBean.encryption == "none") {
                 return listOf()
             }
             return listOf(v2rayBean)

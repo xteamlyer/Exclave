@@ -20,28 +20,36 @@ ksp {
 aboutLibraries {
     offlineMode = true
     collect {
-        configPath = file("src/main/aboutlibraries")
+        configPath = file("src/main/aboutlibraries/config")
         includePlatform = true
     }
     export {
-        outputFile = file("src/main/res/raw/aboutlibraries.json")
         excludeFields.addAll("name", "description", "developers", "funding", "licenses", "organization", "scm", "website", "License")
         prettyPrint = true
+    }
+    exports {
+        create("ossRelease") {
+            outputFile = file("src/main/aboutlibraries/aboutlibraries.json")
+        }
+        create("legacyRelease") {
+            outputFile = file("src/main/aboutlibraries/aboutlibraries_legacy.json")
+        }
     }
 }
 
 dependencies {
     implementation(fileTree("libs"))
+    implementation(project(":plugin:api"))
     implementation(project(":library:proto-stub"))
     implementation(libs.kotlinx.coroutines.android)
     "ossImplementation"(libs.core.ktx)
     "ossImplementation"(libs.activity.ktx)
-    implementation(libs.fragment.ktx)
+    "ossImplementation"(libs.fragment.ktx)
     "ossImplementation"(libs.camera.view)
     "ossImplementation"(libs.camera.lifecycle)
     "ossImplementation"(libs.camera.camera2)
     implementation(libs.swiperefreshlayout)
-    implementation(libs.appcompat)
+    "ossImplementation"(libs.appcompat)
     implementation(libs.preference)
     implementation(libs.flexbox)
     "ossImplementation"(libs.work.runtime.ktx)
@@ -69,9 +77,11 @@ dependencies {
 
     "legacyImplementation"(libs.core.ktx.minSdk21)
     "legacyImplementation"(libs.activity.ktx.minSdk21)
+    "legacyImplementation"(libs.fragment.ktx.minSdk21)
     "legacyImplementation"(libs.camera.view.minSdk21)
     "legacyImplementation"(libs.camera.lifecycle.minSdk21)
     "legacyImplementation"(libs.camera.camera2.minSdk21)
+    "legacyImplementation"(libs.appcompat.minSdk21)
     "legacyImplementation"(libs.work.runtime.ktx.minSdk21)
     "legacyImplementation"(libs.work.multiprocess.minSdk21)
     "legacyImplementation"(libs.room.runtime.minSdk21)
