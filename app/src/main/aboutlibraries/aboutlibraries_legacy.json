@@ -354,7 +354,7 @@
         },
         {
             "uniqueId": "com.google.protobuf:protobuf-java",
-            "artifactVersion": "4.36.0"
+            "artifactVersion": "4.36.1"
         },
         {
             "uniqueId": "com.google.zxing:core",
@@ -379,6 +379,18 @@
         {
             "uniqueId": "io.noties.markwon:core",
             "artifactVersion": "4.6.2"
+        },
+        {
+            "uniqueId": "org.bouncycastle:bcpkix-jdk18on",
+            "artifactVersion": "1.85"
+        },
+        {
+            "uniqueId": "org.bouncycastle:bcprov-jdk18on",
+            "artifactVersion": "1.85"
+        },
+        {
+            "uniqueId": "org.bouncycastle:bcutil-jdk18on",
+            "artifactVersion": "1.85"
         },
         {
             "uniqueId": "org.jetbrains.kotlin:kotlin-bom",
@@ -422,7 +434,7 @@
         },
         {
             "uniqueId": "org.yaml:snakeyaml",
-            "artifactVersion": "2.6"
+            "artifactVersion": "2.7"
         }
     ]
 }

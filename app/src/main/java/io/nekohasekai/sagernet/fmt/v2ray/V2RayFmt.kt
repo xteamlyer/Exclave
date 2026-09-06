@@ -25,10 +25,12 @@ import com.google.gson.JsonObject
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.ktx.*
 import libexclavecore.Libexclavecore
+import java.io.ByteArrayOutputStream
 import kotlin.collections.filter
 import kotlin.collections.isNotEmpty
 import kotlin.io.encoding.Base64
 import kotlin.text.isNotEmpty
+import kotlin.uuid.Uuid
 
 val supportedVmessMethod = arrayOf(
     "auto", "aes-128-gcm", "chacha20-poly1305", "none", "zero"
@@ -114,7 +116,7 @@ fun parseV2Ray(link: String): StandardV2RayBean {
             url.username
         }
     } else {
-        bean.uuid = uuidOrGenerate(url.username)
+        bean.uuid = parseRayUUID(url.username) ?: parseUUID(url.username)?.toHexDashString() ?: uuid5(url.username)
     }
 
     if (bean is VMessBean) {
@@ -223,12 +225,21 @@ fun parseV2Ray(link: String): StandardV2RayBean {
                     .filter { it.isNotEmpty() }.takeIf { it.isNotEmpty() }
                     ?.joinToString("\n")
             }
-            url.queryParameter("ech")?.let {
+            url.queryParameter("ech")?.takeIf { it.isNotEmpty() }?.let {
                 bean.echEnabled = true
-                try {
-                    Base64.decode(it)
-                    bean.echConfig = it
-                } catch (_: Exception) {}
+                // See the shit in https://github.com/XTLS/Xray-core/blob/f124daf5a37c3b968a618f92ca42396f3c001de5/transport/internet/tls/ech.go#L50-L83
+                if (it.contains("://")) {
+                    val parts = it.split("+", limit = 2)
+                    if (parts.size == 2) {
+                        bean.echQueryName = parts[0]
+                    }
+                } else {
+                    try {
+                        Base64.decode(it)
+                        bean.echConfigList = it
+                        bean.echQueryName = ""
+                    } catch (_: Exception) {}
+                }
             }
         }
         "reality" -> {
@@ -549,8 +560,8 @@ private fun parseV2RayN(json: JsonObject): VMessBean {
         serverAddress = json.getString("add") ?: error("missing server address")
         serverPort = (json.getString("port")?.toIntOrNull()
             ?: json.getInt("port"))?: error("invalid port")
-        uuid = json.getString("id")?.let {
-            uuidOrGenerate(it)
+        json.getString("id").orEmpty().let {
+            uuid = parseRayUUID(it) ?: parseUUID(it)?.toHexDashString() ?: uuid5(it)
         }
         alterId = json.getString("aid")?.toIntOrNull() ?: json.getInt("aid")
         json.getString("scy")?.takeIf { it.isNotEmpty() }?.let {
@@ -735,14 +746,15 @@ fun StandardV2RayBean.toUri(): String? {
             }
         }
         is VMessBean -> {
-            builder.username = uuidOrGenerate(uuid)
+            builder.username = parseRayUUID(uuid) ?: parseUUID(uuid)?.toHexDashString() ?: uuid5(uuid)
             builder.addQueryParameter("encryption", encryption)
             if (alterId > 0) {
                 error("unsupported vmess alterId")
             }
         }
         is VLESSBean -> {
-            builder.username = uuidOrGenerate(uuid)
+            require(Uuid.parseHexDashOrNull(uuid) != null) { "invalid uuid" }
+            builder.username = uuid
             when (encryption) {
                 "none" -> builder.addQueryParameter("encryption", "none")
                 "" -> error("unsupported vless encryption")
@@ -979,6 +991,17 @@ fun StandardV2RayBean.toUri(): String? {
             if (this is VLESSBean && flow.isNotEmpty()) {
                 builder.addQueryParameter("flow", flow.removeSuffix("-udp443"))
             }
+            if (echEnabled && echConfigList.isNotEmpty()) {
+                // The `example.com+https://1.1.1.1/dns-query` is shit,
+                // so echQueryName is ignored.
+                try {
+                    // TODO: validate echConfig
+                    Base64.decode(echConfigList)
+                } catch (_: Exception) {
+                    throw IllegalArgumentException("invalid ech")
+                }
+                builder.addQueryParameter("ech", echConfigList)
+            }
         }
         "reality" -> {
             if (sni.isNotEmpty()) {
@@ -1024,4 +1047,37 @@ fun StandardV2RayBean.toUri(): String? {
     }
 
     return builder.string
+}
+
+fun parseRayUUID(str: String): String? {
+    if (str.isEmpty()) {
+        return null
+    }
+    if (str.length <= 30) {
+        // See https://github.com/XTLS/Xray-core/blob/cd4ce973e9f6ef3a7acf9a7030927b4143f9ea47/common/uuid/uuid.go#L71-L83
+        return uuid5(str)
+    }
+    if (str.length < 32) {
+        return null
+    }
+    // https://github.com/v2fly/v2ray-core/blob/3861a919016991f2a2b65e460bcec18652e35a1e/common/uuid/uuid.go#L64-L88
+    // For example:
+    // 2418d087648d499086e819dca1d006d3
+    // -2418d087-648d-4990-86e8-19dca1d006d3
+    // 2418d087-648d499086e819dca1d006d3
+    // 2418d087-648d-4990-86e8-19dca1d006d3💩
+    // They are all valid.
+    var text = str
+    val uuid = ByteArrayOutputStream()
+    for (byteGroup in listOf(8, 4, 4, 4, 12)) {
+        if (text[0] == '-') {
+            text = text.substring(1)
+        }
+        if (text.length < byteGroup) {
+            return null
+        }
+        uuid.write(text.substring(0, byteGroup).hexToByteArray())
+        text = text.substring(byteGroup)
+    }
+    return Uuid.fromByteArray(uuid.toByteArray()).toHexDashString()
 }

@@ -23,7 +23,14 @@ import io.nekohasekai.sagernet.ktx.applyDefaultValues
 import io.nekohasekai.sagernet.ktx.joinHostPort
 import io.nekohasekai.sagernet.ktx.listByLineOrComma
 import libexclavecore.Libexclavecore
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.openssl.PEMParser
+import org.bouncycastle.util.io.pem.PemObject
+import org.bouncycastle.util.io.pem.PemWriter
 import java.io.ByteArrayOutputStream
+import java.io.StringReader
+import java.io.StringWriter
+import java.security.cert.CertificateFactory
 import kotlin.io.encoding.Base64
 
 // https://github.com/TrustTunnel/TrustTunnel/blob/8856e7ba83ae0c9faace78aaf9a95b1b291cd3ed/DEEP_LINK.md
@@ -106,9 +113,23 @@ fun TrustTunnelBean.toUri(): String {
             "quic" -> writeTLV(Tag.UpstreamProtocol.code, byteArrayOf(UpstreamProtocol.HTTP3.code))
         }
         if (certificate.isNotEmpty()) {
-            val der = Libexclavecore.pemToDer(certificate)
-            require(der.isNotEmpty())
-            writeTLV(Tag.Certificate.code, der)
+            val derArray = ByteArrayOutputStream()
+            val pemParser = PEMParser(StringReader(certificate))
+            while (true) {
+                try {
+                    val obj = pemParser.readPemObject() ?: break
+                    if (obj.type != "CERTIFICATE" || obj.headers.isNotEmpty()) {
+                        continue
+                    }
+                    X509CertificateHolder(obj.content)
+                    derArray.write(obj.content)
+                } catch (_: Exception) {
+                    continue
+                }
+            }
+            if (derArray.size() > 0) {
+                writeTLV(Tag.Certificate.code, derArray.toByteArray())
+            }
         }
         if (name.isNotEmpty()) {
             writeTLV(Tag.Name.code, name.toByteArray())
@@ -186,9 +207,15 @@ fun parseTrustTunnel(url: String): List<TrustTunnelBean> {
                     bean.allowInsecure = value[0] == SkipVerification.True.code
                 }
                 Tag.Certificate.code -> {
-                    val pem = Libexclavecore.derToPem(value)
-                    require(pem.isNotEmpty()) { "invalid Certificate" }
-                    bean.certificate = pem
+                    val certs = CertificateFactory.getInstance("X.509").generateCertificates(value.inputStream())
+                    val stringWriter = StringWriter()
+                    val pemWriter = PemWriter(stringWriter)
+                    for (cert in certs) {
+                        pemWriter.writeObject(PemObject("CERTIFICATE", cert.encoded))
+                    }
+                    pemWriter.close()
+                    bean.certificate = stringWriter.toString()
+                    require(!bean.certificate.isNullOrEmpty()) { "invalid Certificate" }
                 }
                 Tag.UpstreamProtocol.code -> {
                     require(length == 1) { "invalid UpstreamProtocol" }

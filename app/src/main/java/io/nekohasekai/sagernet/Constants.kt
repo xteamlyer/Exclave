@@ -187,7 +187,8 @@ object Key {
     const val SERVER_PACKET_ENCODING = "serverPacketEncoding"
     const val SERVER_UTLS_FINGERPRINT = "serverUTLSFingerprint"
     const val SERVER_ECH_ENABLED = "serverEchEnabled"
-    const val SERVER_ECH_CONFIG = "serverEchConfig"
+    const val SERVER_ECH_CONFIG_LIST = "serverEchConfig" // FIXME: should be "serverEchConfigList"
+    const val SERVER_ECH_QUERY_NAME = "serverEchQueryName"
     const val SERVER_MTLS_CERTIFICATE = "serverMtlsCertificate"
     const val SERVER_MTLS_CERTIFICATE_PRIVATE_KEY = "serverMtlsCertificatePrivateKey"
 
@@ -265,6 +266,7 @@ object Key {
 
     const val SERVER_SNELL_OBFS_MODE = "serverSnellObfsMode"
     const val SERVER_SNELL_OBFS_HOST = "serverSnellObfsHost"
+    const val SERVER_SNELL_OBFS_URI = "serverSnellObfsUri"
     const val SERVER_SNELL_MODE = "serverSnellMode"
 
     const val SERVER_NAIVE_NO_POST_QUANTUM = "serverNaiveNoPostQuantum"

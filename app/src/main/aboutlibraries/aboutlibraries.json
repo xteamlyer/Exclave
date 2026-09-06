@@ -34,7 +34,7 @@
         },
         {
             "uniqueId": "androidx.camera.featurecombinationquery:featurecombinationquery",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.camera.viewfinder:viewfinder-core",
@@ -42,27 +42,27 @@
         },
         {
             "uniqueId": "androidx.camera:camera-camera2",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.camera:camera-camera2-pipe",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.camera:camera-core",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.camera:camera-lifecycle",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.camera:camera-video",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.camera:camera-view",
-            "artifactVersion": "1.6.1"
+            "artifactVersion": "1.6.2"
         },
         {
             "uniqueId": "androidx.cardview:cardview",
@@ -402,7 +402,7 @@
         },
         {
             "uniqueId": "com.google.protobuf:protobuf-java",
-            "artifactVersion": "4.36.0"
+            "artifactVersion": "4.36.1"
         },
         {
             "uniqueId": "com.google.zxing:core",
@@ -435,6 +435,18 @@
         {
             "uniqueId": "javax.inject:javax.inject",
             "artifactVersion": "1"
+        },
+        {
+            "uniqueId": "org.bouncycastle:bcpkix-jdk18on",
+            "artifactVersion": "1.85"
+        },
+        {
+            "uniqueId": "org.bouncycastle:bcprov-jdk18on",
+            "artifactVersion": "1.85"
+        },
+        {
+            "uniqueId": "org.bouncycastle:bcutil-jdk18on",
+            "artifactVersion": "1.85"
         },
         {
             "uniqueId": "org.checkerframework:checker-qual",
@@ -486,7 +498,7 @@
         },
         {
             "uniqueId": "org.yaml:snakeyaml",
-            "artifactVersion": "2.6"
+            "artifactVersion": "2.7"
         }
     ]
 }

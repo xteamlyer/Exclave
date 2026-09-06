@@ -54,7 +54,6 @@ import io.nekohasekai.sagernet.fmt.v2ray.VMessBean
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.getBooleanProperty
 import io.nekohasekai.sagernet.ktx.listenForPackageChanges
-import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.readableMessage
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
 import io.nekohasekai.sagernet.ktx.showAllowingStateLoss
@@ -135,7 +134,8 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
         DataStore.serverSplithttpSessionIDLength = splithttpSessionIDLength
         DataStore.serverUTLSFingerprint = utlsFingerprint
         DataStore.serverEchEnabled = echEnabled
-        DataStore.serverEchConfig = echConfig
+        DataStore.serverEchConfigList = echConfigList
+        DataStore.serverEchQueryName = echQueryName
         DataStore.serverMtlsCertificate = mtlsCertificate
         DataStore.serverMtlsCertificatePrivateKey = mtlsCertificatePrivateKey
         DataStore.serverServerNameToVerify = serverNameToVerify
@@ -248,7 +248,8 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
         mtlsCertificate = DataStore.serverMtlsCertificate
         mtlsCertificatePrivateKey = DataStore.serverMtlsCertificatePrivateKey
         echEnabled = DataStore.serverEchEnabled
-        echConfig = DataStore.serverEchConfig
+        echConfigList = DataStore.serverEchConfigList
+        echQueryName = DataStore.serverEchQueryName
         serverNameToVerify = DataStore.serverServerNameToVerify
 
         realityPublicKey = DataStore.serverRealityPublicKey
@@ -313,7 +314,8 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
     lateinit var mtlsCertificate: EditTextPreference
     lateinit var mtlsCertificatePrivateKey: EditTextPreference
     lateinit var echEnabled: SwitchPreference
-    lateinit var echConfig: EditTextPreference
+    lateinit var echConfigList: EditTextPreference
+    lateinit var echQueryName: EditTextPreference
     lateinit var serverNameToVerify: EditTextPreference
 
     lateinit var realityPublicKey: EditTextPreference
@@ -392,10 +394,13 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
         mtlsCertificate = findPreference(Key.SERVER_MTLS_CERTIFICATE)!!
         mtlsCertificatePrivateKey = findPreference(Key.SERVER_MTLS_CERTIFICATE_PRIVATE_KEY)!!
         echEnabled = findPreference(Key.SERVER_ECH_ENABLED)!!
-        echConfig = findPreference(Key.SERVER_ECH_CONFIG)!!
-        echConfig.isEnabled = echEnabled.isChecked
+        echConfigList = findPreference(Key.SERVER_ECH_CONFIG_LIST)!!
+        echQueryName = findPreference(Key.SERVER_ECH_QUERY_NAME)!!
+        echConfigList.isEnabled = echEnabled.isChecked
+        echQueryName.isEnabled = echEnabled.isChecked
         echEnabled.setOnPreferenceChangeListener { _, newValue ->
-            echConfig.isEnabled = newValue as Boolean
+            echConfigList.isEnabled = newValue as Boolean
+            echQueryName.isEnabled = newValue
             true
         }
         serverNameToVerify = findPreference(Key.SERVER_SERVER_NAME_TO_VERIFY)!!
@@ -803,7 +808,8 @@ abstract class StandardV2RaySettingsActivity : ProfileSettingsActivity<StandardV
         mtlsCertificate.isVisible = security == "tls"
         mtlsCertificatePrivateKey.isVisible = security == "tls"
         echEnabled.isVisible = security == "tls"
-        echConfig.isVisible = security == "tls"
+        echConfigList.isVisible = security == "tls"
+        echQueryName.isVisible = security == "tls"
         serverNameToVerify.isVisible = security == "tls"
         realityFingerprint.isVisible = security == "reality"
         realityDisableX25519Mlkem768.isVisible = security == "reality"

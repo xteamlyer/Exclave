@@ -59,6 +59,7 @@ dependencies {
     "ossImplementation"(libs.room.ktx)
     "ossImplementation"(libs.material)
     implementation(libs.gson)
+    implementation(libs.bouncycastle)
     implementation(libs.zxing.core)
     implementation(libs.snakeyaml)
     implementation(libs.material.about.library)

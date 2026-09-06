@@ -345,7 +345,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverPacketEncoding by profileCacheStore.string(Key.SERVER_PACKET_ENCODING)
     var serverUTLSFingerprint by profileCacheStore.string(Key.SERVER_UTLS_FINGERPRINT)
     var serverEchEnabled by profileCacheStore.boolean(Key.SERVER_ECH_ENABLED)
-    var serverEchConfig by profileCacheStore.string(Key.SERVER_ECH_CONFIG)
+    var serverEchConfigList by profileCacheStore.string(Key.SERVER_ECH_CONFIG_LIST)
+    var serverEchQueryName by profileCacheStore.string(Key.SERVER_ECH_QUERY_NAME)
     var serverRealityPublicKey by profileCacheStore.string(Key.SERVER_REALITY_PUBLIC_KEY)
     var serverRealityShortId by profileCacheStore.string(Key.SERVER_REALITY_SHORT_ID)
     var serverRealityMldsa65Verify by profileCacheStore.string(Key.SERVER_REALITY_MLDSA65_VERIFY)
@@ -373,6 +374,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var serverSnellUserKey by profileCacheStore.string(Key.SERVER_SNELL_USER_KEY)
     var serverSnellObfsMode by profileCacheStore.string(Key.SERVER_SNELL_OBFS_MODE)
     var serverSnellObfsHost by profileCacheStore.string(Key.SERVER_SNELL_OBFS_HOST)
+    var serverSnellObfsUri by profileCacheStore.string(Key.SERVER_SNELL_OBFS_URI)
     var serverSnellMode by profileCacheStore.string(Key.SERVER_SNELL_MODE)
 
     var serverVMessExperimentalAuthenticatedLength by profileCacheStore.boolean(Key.SERVER_VMESS_EXPERIMENTAL_AUTHENTICATED_LENGTH)
