@@ -589,4 +589,5 @@
     <string name="chrome_parrot_summary">Imita el QUIC Client Hello de Chrome</string>
     <string name="chrome_parrot_omit_max_datagram_frame_size_datagram_warning">Esta opción está desactivada para que coincida con el comportamiento de Chrome.</string>
     <string name="option_globally_enabled">Esta opción se ha activado globalmente y el valor se omitirá.</string>
+    <string name="snell_obfs_uri">URI de ofuscación</string>
 </resources>
