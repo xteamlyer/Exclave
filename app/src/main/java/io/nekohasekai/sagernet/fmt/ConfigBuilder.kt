@@ -109,6 +109,7 @@ import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.getArray
 import io.nekohasekai.sagernet.ktx.getBoolean
 import io.nekohasekai.sagernet.ktx.getBooleanProperty
+import io.nekohasekai.sagernet.ktx.getInt
 import io.nekohasekai.sagernet.ktx.getObject
 import io.nekohasekai.sagernet.ktx.getString
 import io.nekohasekai.sagernet.ktx.getStringArray
