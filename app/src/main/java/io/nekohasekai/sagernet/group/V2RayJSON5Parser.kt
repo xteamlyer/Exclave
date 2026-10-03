@@ -122,7 +122,7 @@ fun parseV2Ray5Outbound(outbound: JsonObject): List<AbstractBean> {
                                     }
                                 }
                                 (tlsConfig.getByteArrayArray("pinnedPeerCertificateChainSha256")
-                                    ?: tlsConfig.getByteArrayArray("pinned_peer_certificate_chain_sha256"))?.also {
+                                    ?: tlsConfig.getByteArrayArray("pinned_peer_certificate_chain_sha256"))?.takeIf { it.isNotEmpty() }?.also {
                                     v2rayBean.pinnedPeerCertificateChainSha256 = it.joinToString("\n") { Base64.encode(it) }
                                     (tlsConfig.getBoolean("allowInsecureIfPinnedPeerCertificate")
                                         ?: tlsConfig.getBoolean("allow_insecure_if_pinned_peer_certificate"))?.also { allowInsecure ->

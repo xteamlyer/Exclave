@@ -106,7 +106,7 @@
         },
         {
             "uniqueId": "androidx.databinding:viewbinding",
-            "artifactVersion": "9.3.2"
+            "artifactVersion": "9.4.1"
         },
         {
             "uniqueId": "androidx.drawerlayout:drawerlayout",
@@ -354,7 +354,7 @@
         },
         {
             "uniqueId": "com.google.protobuf:protobuf-java",
-            "artifactVersion": "4.36.1"
+            "artifactVersion": "4.36.2"
         },
         {
             "uniqueId": "com.google.zxing:core",
@@ -382,15 +382,15 @@
         },
         {
             "uniqueId": "org.bouncycastle:bcpkix-jdk18on",
-            "artifactVersion": "1.85"
+            "artifactVersion": "1.86"
         },
         {
             "uniqueId": "org.bouncycastle:bcprov-jdk18on",
-            "artifactVersion": "1.85"
+            "artifactVersion": "1.86"
         },
         {
             "uniqueId": "org.bouncycastle:bcutil-jdk18on",
-            "artifactVersion": "1.85"
+            "artifactVersion": "1.86"
         },
         {
             "uniqueId": "org.jetbrains.kotlin:kotlin-bom",
@@ -398,11 +398,11 @@
         },
         {
             "uniqueId": "org.jetbrains.kotlin:kotlin-parcelize-runtime",
-            "artifactVersion": "2.4.10"
+            "artifactVersion": "2.4.20"
         },
         {
             "uniqueId": "org.jetbrains.kotlin:kotlin-stdlib",
-            "artifactVersion": "2.4.10"
+            "artifactVersion": "2.4.20"
         },
         {
             "uniqueId": "org.jetbrains.kotlin:kotlin-stdlib-jdk7",

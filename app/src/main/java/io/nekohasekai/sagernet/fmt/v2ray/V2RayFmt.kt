@@ -365,7 +365,7 @@ fun parseV2Ray(link: String): StandardV2RayBean {
                 try {
                     // RPRX's smart-assed invention. This of course will break under some conditions.
                     val u = Libexclavecore.parseURL(path)
-                    u.queryParameter("ed")?.let {
+                    u.queryParameter("ed")?.takeIf { it.isNotEmpty() }?.let {
                         u.deleteQueryParameter("ed")
                         bean.path = u.string
                     }
@@ -392,11 +392,13 @@ fun parseV2Ray(link: String): StandardV2RayBean {
                 try {
                     // RPRX's smart-assed invention. This of course will break under some conditions.
                     val u = Libexclavecore.parseURL(path)
-                    u.queryParameter("ed")?.let { ed ->
+                    u.queryParameter("ed")?.takeIf { it.isNotEmpty() }?.let { ed ->
                         u.deleteQueryParameter("ed")
                         bean.path = u.string
-                        bean.maxEarlyData = ed.toIntOrNull()
-                        bean.earlyDataHeaderName = "Sec-WebSocket-Protocol"
+                        ed.toIntOrNull()?.takeIf { it > 0 }?.let {
+                            bean.maxEarlyData = it
+                            bean.earlyDataHeaderName = "Sec-WebSocket-Protocol"
+                        }
                     }
                 } catch (_: Exception) {}
             }
@@ -604,11 +606,13 @@ private fun parseV2RayN(json: JsonObject): VMessBean {
             try {
                 // RPRX's smart-assed invention. This of course will break under some conditions.
                 val u = Libexclavecore.parseURL(bean.path)
-                u.queryParameter("ed")?.let { ed ->
+                u.queryParameter("ed")?.takeIf { it.isNotEmpty() }?.let { ed ->
                     u.deleteQueryParameter("ed")
                     bean.path = u.string
-                    bean.maxEarlyData = ed.toIntOrNull()
-                    bean.earlyDataHeaderName = "Sec-WebSocket-Protocol"
+                    ed.toIntOrNull()?.takeIf { it > 0 }?.let {
+                        bean.maxEarlyData = it
+                        bean.earlyDataHeaderName = "Sec-WebSocket-Protocol"
+                    }
                 }
             } catch (_: Exception) {}
         }
@@ -618,7 +622,7 @@ private fun parseV2RayN(json: JsonObject): VMessBean {
             try {
                 // RPRX's smart-assed invention. This of course will break under some conditions.
                 val u = Libexclavecore.parseURL(bean.path)
-                u.queryParameter("ed")?.let {
+                u.queryParameter("ed")?.takeIf { it.isNotEmpty() }?.let {
                     u.deleteQueryParameter("ed")
                     bean.path = u.string
                 }
@@ -959,7 +963,10 @@ fun StandardV2RayBean.toUri(): String? {
                     builder.addQueryParameter("sni", sni)
                 }
             }
-            if (alpn.isNotEmpty()) {
+            if (type == "quic" && (alpn.isEmpty() || alpn.listByLineOrComma().isEmpty())) {
+                // https://github.com/ExclaveNetwork/Exclave/issues/488
+                builder.addQueryParameter("alpn", "h3")
+            } else if (alpn.isNotEmpty()) {
                 builder.addQueryParameter("alpn", alpn.listByLineOrComma().joinToString(","))
             }
             // as pinned certificate is not exportable, only add `allowInsecure=1` if pinned certificate is not used
@@ -1029,7 +1036,9 @@ fun StandardV2RayBean.toUri(): String? {
                 }
                 builder.addQueryParameter("pqv", realityMldsa65Verify)
             }
-            builder.addQueryParameter("fp", realityFingerprint.ifEmpty { "chrome" })
+            if (realityFingerprint.isNotEmpty()) {
+                builder.addQueryParameter("fp", realityFingerprint)
+            }
             if (this is VLESSBean && flow.isNotEmpty()) {
                 builder.addQueryParameter("flow", flow.removeSuffix("-udp443"))
             }
@@ -1080,4 +1089,42 @@ fun parseRayUUID(str: String): String? {
         text = text.substring(byteGroup)
     }
     return Uuid.fromByteArray(uuid.toByteArray()).toHexDashString()
+}
+
+// https://github.com/XTLS/Xray-core/blob/52a412d9e2f5c2a5142b1b4e2ab3771dacb8b120/infra/conf/common.go#L292-L380
+fun JsonObject.getXrayRangeAsTriple(key: String): Triple<Int, Int, Boolean>? {
+    this.getString(key, ignoreCase = true)?.also { value ->
+        value.toIntOrNull()?.also {
+            return Triple(it, it, true)
+        }
+        if (value.isEmpty()) {
+            return Triple(0, 0, true)
+        }
+        val pair = if (value.startsWith("-")) {
+            val parts = value.split("-", limit = 3)
+            if (parts.size < 3) {
+                listOf(value)
+            } else {
+                listOf(parts[0] + "-" + parts[1], parts[2])
+            }
+        } else {
+            value.split("-", limit = 2)
+        }
+        if (pair.size == 2) {
+            val from = pair[0].toIntOrNull()
+            val to = pair[1].toIntOrNull()
+            return if (from != null && to != null) {
+                Triple(minOf(from, to), maxOf(from, to), false)
+            } else null
+        }
+    }
+    this.getInt(key, ignoreCase = true)?.also {
+        return Triple(it, it, true)
+    }
+    return null
+}
+
+fun JsonObject.getXrayRange(key: String): String? {
+    val value = this.getXrayRangeAsTriple(key) ?: return null
+    return if (value.third) "${value.first}" else "${value.first}-${value.second}"
 }

@@ -387,19 +387,16 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                     bean.host = bean.sni
                 }
                 proxy.getObject("ws-opts")?.also { wsOpts ->
-                    bean.path = wsOpts.getString("path")
                     bean.maxEarlyData = wsOpts.getInt("max-early-data")
                     bean.earlyDataHeaderName = wsOpts.getString("early-data-header-name")
                     bean.path = wsOpts.getString("path")
                     if (!bean.path.isNullOrEmpty()) {
                         try {
                             val u = Libexclavecore.parseURL(bean.path)
-                            u.queryParameter("ed")?.also { ed ->
+                            u.queryParameter("ed")?.takeIf { it.isNotEmpty() }?.toIntOrNull()?.takeIf { it > 0 }?.also {
                                 u.deleteQueryParameter("ed")
                                 bean.path = u.string
-                                (ed.toIntOrNull())?.also {
-                                    bean.maxEarlyData = it
-                                }
+                                bean.maxEarlyData = it
                                 bean.earlyDataHeaderName = "Sec-WebSocket-Protocol"
                             }
                         } catch (_: Exception) {}
@@ -444,37 +441,37 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                         opts.getBoolean("no-grpc-header")?.also {
                             addProperty("noGRPCHeader", it)
                         }
-                        opts.getString("x-padding-bytes")?.also {
+                        opts.getXHTTPRange("x-padding-bytes")?.also {
                             addProperty("xPaddingBytes", it)
                         }
-                        opts.getString("sc-max-each-post-bytes")?.also {
+                        opts.getXHTTPRange("sc-max-each-post-bytes")?.also {
                             addProperty("scMaxEachPostBytes", it)
                         }
-                        opts.getString("sc-min-posts-interval-ms")?.also {
+                        opts.getXHTTPRange("sc-min-posts-interval-ms")?.also {
                             addProperty("scMinPostsIntervalMs", it)
                         }
                         opts.getObject("reuse-settings")?.also { xmux ->
                             JsonObject().apply {
-                                xmux.getString("max-connections")?.also {
+                                xmux.getXHTTPRange("max-connections")?.also {
                                     addProperty("maxConnections", it)
                                 }
-                                xmux.getString("max-concurrency")?.also {
+                                xmux.getXHTTPRange("max-concurrency")?.also {
                                     addProperty("maxConcurrency", it)
                                 }
-                                xmux.getString("c-max-reuse-times")?.also {
+                                xmux.getXHTTPRange("c-max-reuse-times")?.also {
                                     addProperty("cMaxReuseTimes", it)
                                 }
-                                xmux.getString("h-max-request-times")?.also {
+                                xmux.getXHTTPRange("h-max-request-times")?.also {
                                     addProperty("hMaxRequestTimes", it)
                                 }
-                                xmux.getString("h-max-reusable-secs")?.also {
+                                xmux.getXHTTPRange("h-max-reusable-secs")?.also {
                                     addProperty("hMaxReusableSecs", it)
                                 }
                             }.takeIf { !it.isEmpty }?.also {
                                 add("xmux", it)
                             }
                         }
-                        opts.getString("x-padding-bytes")?.also {
+                        opts.getXHTTPRange("x-padding-bytes")?.also {
                             addProperty("xPaddingBytes", it)
                         }
                         opts.getBoolean("x-padding-obfs-mode")?.also {
@@ -504,7 +501,7 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                         opts.getString("session-table")?.also {
                             addProperty("sessionIDTable", it)
                         }
-                        opts.getString("session-length")?.also {
+                        opts.getXHTTPRange("session-length")?.also {
                             addProperty("sessionIDLength", it)
                         }
                         opts.getString("seq-placement")?.also {
@@ -519,7 +516,7 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                         opts.getString("uplink-data-key")?.also {
                             addProperty("uplinkDataKey", it)
                         }
-                        opts.getString("uplink-chunk-size")?.also {
+                        opts.getXHTTPRange("uplink-chunk-size")?.also {
                             addProperty("uplinkChunkSize", it)
                         }
                     }.takeIf { !it.isEmpty }?.also {
@@ -1193,4 +1190,23 @@ private fun String.toIntRange(): Triple<Int, Int, Boolean>? {
             return null
         }
     }
+}
+
+// https://github.com/MetaCubeX/mihomo/blob/d5f57a5e290eafd77a2b28d8db36e3bd70071398/transport/xhttp/config.go#L327-L359
+private fun Map<String, Any?>.getXHTTPRange(key: String): String? {
+    val value = this.getString(key) ?: return null
+    if (value.trim().isEmpty()) {
+        return null // fallback to default value
+    }
+    val parts = value.trim().split("-")
+    if (parts.size == 1) {
+        val v = parts[0].toIntOrNull()
+        return if (v != null) "$v-$v" else null
+    }
+    if (parts.size != 2) {
+        return null
+    }
+    val from = parts[0].trim().toIntOrNull()
+    val to = parts[0].trim().toIntOrNull()
+    return if (from != null && to != null && from in 0..to) "$from-$to" else null
 }

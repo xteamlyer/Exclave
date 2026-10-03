@@ -2,7 +2,8 @@
 
 set CGO_LDFLAGS=-Wl,-z,max-page-size=16384
 
-gomobile bind -v -androidapi 21 -trimpath -ldflags="-s -buildid=" -tags="with_clash" "github.com/exclavenetwork/libexclavecore"
+:: http2legacy: https://github.com/XTLS/Xray-core/issues/6797
+gomobile bind -v -androidapi 21 -trimpath -ldflags="-s -buildid=" -tags="with_clash,http2legacy" "github.com/exclavenetwork/libexclavecore"
 if errorlevel 1 (
     exit /b 1
 )
