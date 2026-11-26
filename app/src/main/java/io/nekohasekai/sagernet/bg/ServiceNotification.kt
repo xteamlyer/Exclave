@@ -158,15 +158,11 @@ class ServiceNotification(
             service.registerReceiver(this, IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
-                addAction(Action.THEME_CHANGED)
-                addAction(Intent.ACTION_LOCALE_CHANGED)
-            }, Context.RECEIVER_EXPORTED)
+            }, Context.RECEIVER_NOT_EXPORTED)
         } else {
             service.registerReceiver(this, IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
-                addAction(Action.THEME_CHANGED)
-                addAction(Intent.ACTION_LOCALE_CHANGED)
             })
         }
         show()
@@ -196,20 +192,7 @@ class ServiceNotification(
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && intent.action == Action.THEME_CHANGED) {
-            service as Context
-            Theme.apply(app)
-            Theme.apply(service)
-            builder.color = service.getColorAttr(androidx.appcompat.R.attr.colorPrimary)
-            update()
-        }
-        if (intent.action == Intent.ACTION_LOCALE_CHANGED) {
-            updateActions()
-            update()
-        }
-        if (service.data.state == BaseService.State.Connected) {
-            updateCallback(intent.action == Intent.ACTION_SCREEN_ON)
-        }
+        if (service.data.state == BaseService.State.Connected) updateCallback(intent.action == Intent.ACTION_SCREEN_ON)
     }
 
     private fun updateCallback(screenOn: Boolean) {
@@ -228,7 +211,9 @@ class ServiceNotification(
 
     private fun show() = (service as Service).startForeground(notificationId, builder.build())
     private fun update() =
-        NotificationManagerCompat.from(service as Service).notify(notificationId, builder.build())
+        try {
+            NotificationManagerCompat.from(service as Service).notify(notificationId, builder.build())
+        } catch (_: SecurityException) {}
 
     fun destroy() {
         (service as Service).unregisterReceiver(this)
